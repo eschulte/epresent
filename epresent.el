@@ -82,16 +82,16 @@
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
     (setq epresent--frame (make-frame '((minibuffer . nil)
-					(title . "EPresent")
-					(fullscreen . fullboth)
-					(menu-bar-lines . 0)
-					(tool-bar-lines . 0)
-					(vertical-scroll-bars . nil)
-					(left-fringe . 0)
-					(right-fringe . 0)
-					(internal-border-width . 20)
-					(cursor-type . nil)
-					))))
+                                        (title . "EPresent")
+                                        (fullscreen . fullboth)
+                                        (menu-bar-lines . 0)
+                                        (tool-bar-lines . 0)
+                                        (vertical-scroll-bars . nil)
+                                        (left-fringe . 0)
+                                        (right-fringe . 0)
+                                        (internal-border-width . 20)
+                                        (cursor-type . nil)
+                                        ))))
   (raise-frame epresent--frame)
   (select-frame-set-input-focus epresent--frame)
   epresent--frame)
@@ -110,12 +110,12 @@
 
 (defun epresent-insert-code (buffer string)
   (let (in-box
-	(result "    "))
+        (result "    "))
     (dolist (text (split-string string "!"))
       (setq result (concat result
-			   (propertize text
-				       'face (if in-box 'epresent-box-face
-					       'epresent-fixed-face))))
+                           (propertize text
+                                       'face (if in-box 'epresent-box-face
+                                               'epresent-fixed-face))))
       (setq in-box (not in-box)))
     (epresent-insert buffer (concat result "\n"))))
 
@@ -123,73 +123,73 @@
   (let ((full-name (expand-file-name file)))
     (with-current-buffer buffer
       (let ((image (create-image full-name)))
-	(insert-image image)
-	(insert "\n")
-	(when text
-	  (insert (propertize " " 'display `(space :align-to (0.7 . ,image))))
-	  (insert (propertize text 'face 'epresent-subtitle-face) "\n"))))))
+        (insert-image image)
+        (insert "\n\n")
+        (when text
+          (insert (propertize " " 'display `(space :align-to (0.7 . ,image))))
+          (insert (propertize text 'face 'epresent-subtitle-face) "\n"))))))
 
 (defun epresent-display-render-page (buffer)
   (let (seen done)
     (while (not done)
       (cond
        ((eobp)
-	(setq done t))
-       ((looking-at "^#")		; Comment
-	nil)
-       ((looking-at "^[*] @?\\(.*\\)$")	; New page.
-	(if seen
-	    (progn
-	      (setq done t)
-	      (forward-line -1))
-	  (setq seen t)
-	  (epresent-erase-buffer buffer)
-	  (epresent-insert buffer "\n\n")
-	  (epresent-insert buffer (propertize (match-string 1)
-				   'face 'epresent-title-face))
-	  (epresent-insert buffer "\n\n")))
-       ((looking-at "^$")		; Blank line.
-	(epresent-insert buffer "\n"))
+        (setq done t))
+       ((looking-at "^#")       ; Comment
+        nil)
+       ((looking-at "^[*] @?\\(.*\\)$") ; New page.
+        (if seen
+            (progn
+              (setq done t)
+              (forward-line -1))
+          (setq seen t)
+          (epresent-erase-buffer buffer)
+          (epresent-insert buffer "\n\n")
+          (epresent-insert buffer (propertize (match-string 1)
+                                              'face 'epresent-title-face))
+          (epresent-insert buffer "\n\n")))
+       ((looking-at "^$")       ; Blank line.
+        (epresent-insert buffer "\n"))
        ((looking-at "^[*][*] \\(.*\\)$") ; Sub-heading.
-	(epresent-insert-2nd buffer (match-string 1)))
-       ((looking-at "^@toc$")		; Table of contents.
-	(save-excursion
-	  (while (re-search-forward "^[*] @\\(.*\\)$" nil t)
-	    (epresent-insert-2nd buffer (match-string 1)))))
+        (epresent-insert-2nd buffer (match-string 1)))
+       ((looking-at "^@toc$")       ; Table of contents.
+        (save-excursion
+          (while (re-search-forward "^[*] @\\(.*\\)$" nil t)
+            (epresent-insert-2nd buffer (match-string 1)))))
        ((looking-at "^\\[\\([^ ]*\\) \\(.*\\)\\]$") ; Image: [file text]
-	(epresent-insert-image buffer (match-string 1) (match-string 2)))
-       ((looking-at "^=\\(.*\\)=$")	; Code.
-	(epresent-insert-code buffer (match-string 1))))
+        (epresent-insert-image buffer (match-string 1) (match-string 2)))
+       ((looking-at "^=\\(.*\\)=$") ; Code.
+        (epresent-insert-code buffer (match-string 1))))
       (forward-line))))
 
 (defun epresent-display-next-page ()
   (interactive)
   (let ((buffer (current-buffer))
-	(pt epresent--outline-buffer-point))
+        (pt epresent--outline-buffer-point))
     (save-excursion
       (set-buffer epresent--outline-buffer)
       (goto-char pt)
       (forward-line)
       (when (re-search-forward epresent--outline-top-rx nil t)
-	(beginning-of-line)
-	(setq epresent--outline-buffer-point (point))
-	(epresent-display-render-page buffer)))))
+        (beginning-of-line)
+        (setq epresent--outline-buffer-point (point))
+        (epresent-display-render-page buffer)))))
 
 (defun epresent-display-previous-page ()
   (interactive)
   (let ((buffer (current-buffer))
-	(pt epresent--outline-buffer-point))
+        (pt epresent--outline-buffer-point))
     (save-excursion
       (set-buffer epresent--outline-buffer)
       (goto-char pt)
       (when (re-search-backward epresent--outline-top-rx nil t)
-	(setq epresent--outline-buffer-point (point))
-	(epresent-display-render-page buffer)))))
+        (setq epresent--outline-buffer-point (point))
+        (epresent-display-render-page buffer)))))
 
 (defun epresent-first-page ()
   (interactive)
   (setq epresent--outline-buffer-point
-	(with-current-buffer epresent--outline-buffer (point-min)))
+        (with-current-buffer epresent--outline-buffer (point-min)))
   (epresent-display-next-page))
 
 (defun epresent-display-quit ()
@@ -199,13 +199,13 @@
 (defun epresent-increase-font ()
   (interactive)
   (dolist (face
-	   '(epresent-title-face epresent-content-face epresent-fixed-face))
+           '(epresent-title-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1+ (face-attribute face :height)))))
 
 (defun epresent-decrease-font ()
   (interactive)
   (dolist (face
-	   '(epresent-title-face epresent-content-face epresent-fixed-face))
+           '(epresent-title-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1- (face-attribute face :height)))))
 
 (defun epresent-debug-visit-otl ()
@@ -235,7 +235,7 @@
   "Lalala."
   ;; fill-column setting?  or somehow use :align-to?
   ;; These have to be global for now.  FIXME.
-  ;; (make-local-variable 'epresent--outline-buffer) 
+  ;; (make-local-variable 'epresent--outline-buffer)
   ;; (make-local-variable 'epresent--outline-buffer-point)
   (set (make-local-variable 'mode-line-format) nil)
   )
@@ -247,8 +247,8 @@
               (eq major-mode 'org-mode))
     (error "EPresent can only be used from Outline Mode"))
   (let ((out-buf (current-buffer))
-	(out-point (point-min))
-	(buffer (get-buffer-create "*EPresent*")))
+        (out-point (point-min))
+        (buffer (get-buffer-create "*EPresent*")))
     (epresent--get-frame)
     (switch-to-buffer buffer)
     (epresent-display-mode)
