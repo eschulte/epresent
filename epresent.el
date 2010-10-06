@@ -243,7 +243,8 @@
 ;;;###autoload
 (defun epresent-run-frame ()
   (interactive)
-  (unless (eq major-mode 'outline-mode)
+  (unless (or (eq major-mode 'outline-mode)
+              (eq major-mode 'org-mode))
     (error "EPresent can only be used from Outline Mode"))
   (let ((out-buf (current-buffer))
 	(out-point (point-min))
