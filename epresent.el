@@ -118,6 +118,15 @@
                                                'epresent-fixed-face))))
       (setq in-box (not in-box)))
     (epresent-insert buffer (concat result "\n"))))
+(defun epresent-insert-font-lock (buffer mode string)
+  (message "font-lokcing %s" mode)
+  (epresent-insert buffer
+                   (with-temp-buffer
+                     (funcall (intern mode))
+                     (insert string)
+                     (indent-region 0 (point-max))
+                     (font-lock-fontify-buffer)
+                     (buffer-string))))
 
 (defun epresent-insert-image (buffer file text)
   (let ((full-name (expand-file-name file)))
@@ -158,6 +167,9 @@
             (epresent-insert-2nd buffer (match-string 1)))))
        ((looking-at "^\\[\\([^ ]*\\) \\(.*\\)\\]$") ; Image: [file text]
         (epresent-insert-image buffer (match-string 1) (match-string 2)))
+       ;; Font-locked code.
+       ((looking-at " *-|\\([-[:alnum:]]+\\)\n\\(\\(.\\|\n\\)+\\)|")
+        (epresent-insert-font-lock buffer (match-string 1) (match-string 2)))
        ((looking-at "^=\\(.*\\)=$") ; Code.
         (epresent-insert-code buffer (match-string 1))))
       (forward-line))))
