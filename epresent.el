@@ -60,6 +60,8 @@
 (defface epresent-subtitle-face
   '((t :height 0.7 :inherit variable-pitch))
   "")
+(defface epresent-spacer-face
+  '((t :height 0.5 :inherit variable-pitch))
   "")
 
 ;; FIXME: huge hack for the demo.
@@ -79,6 +81,9 @@
 
 (defvar epresent--frame nil
   "Frame for EPresent.")
+
+(defconst epresent-spacer
+  (propertize "\n" 'face 'epresent-spacer-face))
 
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
@@ -103,11 +108,11 @@
 
 (defun epresent-insert (buffer string)
   (with-current-buffer buffer
-    (insert string "\n")))
+    (insert string epresent-spacer)))
 
 (defun epresent-insert-2nd (buffer string)
   (with-current-buffer buffer
-    (insert "  " (propertize string 'face 'epresent-content-face) "\n")))
+    (insert "  " (propertize string 'face 'epresent-content-face) epresent-spacer)))
 
 (defun epresent-insert-code (buffer string)
   (let (in-box
@@ -118,7 +123,8 @@
                                        'face (if in-box 'epresent-box-face
                                                'epresent-fixed-face))))
       (setq in-box (not in-box)))
-    (epresent-insert buffer (concat result "\n"))))
+    (epresent-insert buffer (concat result epresent-spacer))))
+
 (defun epresent-insert-font-lock (buffer mode string)
   (message "font-lokcing %s" mode)
   (epresent-insert buffer
@@ -134,10 +140,10 @@
     (with-current-buffer buffer
       (let ((image (create-image full-name)))
         (insert-image image)
-        (insert "\n\n")
+        (insert "\n")
         (when text
           (insert (propertize " " 'display `(space :align-to (0.7 . ,image))))
-          (insert (propertize text 'face 'epresent-subtitle-face) "\n"))))))
+          (insert (propertize text 'face 'epresent-subtitle-face) epresent-spacer))))))
 
 (defun epresent-display-render-page (buffer)
   (let (seen done)
@@ -154,12 +160,12 @@
               (forward-line -1))
           (setq seen t)
           (epresent-erase-buffer buffer)
-          (epresent-insert buffer "\n\n")
+          (epresent-insert buffer "\n")
           (epresent-insert buffer (propertize (match-string 1)
                                               'face 'epresent-title-face))
-          (epresent-insert buffer "\n\n")))
+          (epresent-insert buffer "\n")))
        ((looking-at "^$")       ; Blank line.
-        (epresent-insert buffer "\n"))
+        (epresent-insert buffer epresent-spacer))
        ((looking-at "^[*][*] \\(.*\\)$") ; Sub-heading.
         (epresent-insert-2nd buffer (match-string 1)))
        ((looking-at "^@toc$")       ; Table of contents.
