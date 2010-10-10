@@ -46,19 +46,20 @@
 
 
 (defface epresent-title-face
-  '((t :weight bold :height 4.0 :underline t :inherit variable-pitch))
+  '((t :weight bold :height 2.0 :underline t :inherit variable-pitch))
   "")
 (defface epresent-content-face
-  '((t :height 3.0 :inherit variable-pitch))
+  '((t :height 1.0 :inherit variable-pitch))
   "")
 (defface epresent-fixed-face
-  '((t :height 3.0 :inherit fixed-pitch))
+  '((t :height 1.0 :inherit fixed-pitch))
   "")
 (defface epresent-box-face
   '((t :box t :inherit epresent-fixed-face))
   "")
 (defface epresent-subtitle-face
-  '((t :height 1.0 :inherit variable-pitch))
+  '((t :height 0.7 :inherit variable-pitch))
+  "")
   "")
 
 ;; FIXME: huge hack for the demo.
