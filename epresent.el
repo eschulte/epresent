@@ -258,4 +258,5 @@
 
 ;;;###autoload(global-set-key [f12] 'epresent-run-frame)
 
+(provide 'epresent)
 ;;; epresent.el ends here
