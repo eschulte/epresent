@@ -46,7 +46,7 @@
 
 
 (defface epresent-title-face
-  '((t :weight bold :height 2.0 :underline t :inherit variable-pitch))
+  '((t :weight bold :height 1.8 :underline t :inherit variable-pitch))
   "")
 (defface epresent-content-face
   '((t :height 1.0 :inherit variable-pitch))
@@ -64,13 +64,6 @@
   '((t :height 0.5 :inherit variable-pitch))
   "")
 
-;; FIXME: huge hack for the demo.
-(when (eq emacs-major-version 23)
-  (set-face-attribute 'epresent-title-face nil :family "Bitstream Vera Sans")
-  (set-face-attribute 'epresent-content-face nil :family "Bitstream Vera Sans")
-  (set-face-attribute 'epresent-fixed-face nil :family "Bitstream Vera Sans Mono")
-  (set-face-attribute 'epresent-subtitle-face nil :family "Bitstream Vera Sans"))
-
 ;; The outline buffer for the presentation.
 (defvar epresent--outline-buffer nil)
 
@@ -81,6 +74,8 @@
 
 (defvar epresent--frame nil
   "Frame for EPresent.")
+
+(defvar epresent-text-scale 3)
 
 (defconst epresent-spacer
   (propertize "\n" 'face 'epresent-spacer-face))
@@ -257,7 +252,7 @@
   ;; (make-local-variable 'epresent--outline-buffer)
   ;; (make-local-variable 'epresent--outline-buffer-point)
   (set (make-local-variable 'mode-line-format) nil)
-  )
+  (text-scale-set epresent-text-scale))
 
 ;;;###autoload
 (defun epresent-run-frame ()
