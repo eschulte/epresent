@@ -51,6 +51,9 @@
 (defface epresent-content-face
   '((t :height 1.0 :inherit variable-pitch))
   "")
+(defface epresent-list-face
+  '((t :height 0.9 :inherit variable-pitch))
+  "")
 (defface epresent-fixed-face
   '((t :height 1.0 :inherit fixed-pitch))
   "")
@@ -59,6 +62,10 @@
   "")
 (defface epresent-subtitle-face
   '((t :height 0.7 :inherit variable-pitch))
+  "")
+(defface epresent-url-face
+  '((t :height 1.0 :inherit variable-pitch
+       :foreground "blue" :underline t))
   "")
 (defface epresent-spacer-face
   '((t :height 0.5 :inherit variable-pitch))
@@ -107,7 +114,13 @@
 
 (defun epresent-insert-2nd (buffer string)
   (with-current-buffer buffer
-    (insert "  " (propertize string 'face 'epresent-content-face) epresent-spacer)))
+    (insert "  " (propertize string 'face 'epresent-content-face)
+            epresent-spacer)))
+
+(defun epresent-insert-list-element (buffer string)
+  (with-current-buffer buffer
+    (insert "  " (propertize (concat "• " string) 'face 'epresent-list-face)
+            epresent-spacer)))
 
 (defun epresent-insert-code (buffer string)
   (let (in-box
@@ -121,18 +134,26 @@
     (epresent-insert buffer (concat result epresent-spacer))))
 
 (defun epresent-insert-font-lock (buffer mode string)
-  (message "font-lokcing %s" mode)
   (epresent-insert buffer
                    (with-temp-buffer
                      (funcall (intern mode))
                      (insert string)
                      (indent-region 0 (point-max))
+                     (goto-char (point-max))
+                     (beginning-of-line)
+                     (open-rectangle 0 (+ 4 (point)))
                      (font-lock-fontify-buffer)
                      (buffer-string))))
+
+(defun epresent-insert-url (buffer string)
+  (with-current-buffer buffer
+    (insert "  " (propertize string 'face 'epresent-url-face)
+            epresent-spacer)))
 
 (defun epresent-insert-image (buffer file text)
   (let ((full-name (expand-file-name file)))
     (with-current-buffer buffer
+      ;; TODO: a way to flush the image cache
       (let ((image (create-image full-name)))
         (insert-image image)
         (insert "\n")
@@ -161,16 +182,21 @@
           (epresent-insert buffer "\n")))
        ((looking-at "^$")       ; Blank line.
         (epresent-insert buffer epresent-spacer))
+       ;; TODO: URLs should be font-locked anywhere, not just headers
+       ((looking-at "^[*][*] \\(http.*\\)") ; URLs
+        (epresent-insert-url buffer (match-string 1)))
        ((looking-at "^[*][*] \\(.*\\)$") ; Sub-heading.
         (epresent-insert-2nd buffer (match-string 1)))
+       ((looking-at "^[*][*][*] \\(.*\\)$") ; List
+        (epresent-insert-list-element buffer (match-string 1)))
        ((looking-at "^@toc$")       ; Table of contents.
         (save-excursion
           (while (re-search-forward "^[*] @\\(.*\\)$" nil t)
             (epresent-insert-2nd buffer (match-string 1)))))
-       ((looking-at "^\\[\\([^ ]*\\) \\(.*\\)\\]$") ; Image: [file text]
+       ((looking-at "^\\[\\([^ ]*\\) ?\\(.*\\)\\]$") ; Image: [file text]
         (epresent-insert-image buffer (match-string 1) (match-string 2)))
-       ;; Font-locked code.
-       ((looking-at " *-|\\([-[:alnum:]]+\\)\n\\(\\(.\\|\n\\)+\\)|")
+       ;; Font-locked code: -|mode-name\n [...]|
+       ((looking-at " *-|\\([-[:alnum:]]+\\)\n\\(\\(.\\|\n\\)+?\\)|")
         (epresent-insert-font-lock buffer (match-string 1) (match-string 2)))
        ((looking-at "^=\\(.*\\)=$") ; Code.
         (epresent-insert-code buffer (match-string 1))))
@@ -252,7 +278,8 @@
   ;; (make-local-variable 'epresent--outline-buffer)
   ;; (make-local-variable 'epresent--outline-buffer-point)
   (set (make-local-variable 'mode-line-format) nil)
-  (text-scale-set epresent-text-scale))
+  (text-scale-adjust 0)
+  (text-scale-adjust epresent-text-scale))
 
 ;;;###autoload
 (defun epresent-run-frame ()
