@@ -65,12 +65,6 @@
   '((t :height 0.5 :inherit variable-pitch))
   "")
 
-;; The org buffer for the presentation.
-(defvar epresent--org-buffer nil)
-
-;; Our point in the org buffer.
-(defvar epresent--org-buffer-point nil)
-
 (defvar epresent--org-top-rx "^[*] ")
 
 (defvar epresent--frame nil
@@ -99,21 +93,44 @@
   epresent--frame)
 
 ;; functions
+(defun epresent-goto-top-level ()
+  "Go to the current top level heading containing point."
+  (let ((level (org-current-level)))
+    (when level
+      (outline-up-heading (- level 1))
+      (org-narrow-to-subtree))))
+
 (defun epresent-display-current-page ()
   "Present the current outline heading."
-  (interactive))
+  (interactive)
+  (if (org-current-level)
+      (progn
+        (epresent-goto-top-level)
+        (org-narrow-to-subtree))
+    ;; if before first headline just show the buffer preamble
+    (narrow-to-region (point-min) (save-excursion (goto-char (point-min))
+                                                  (outline-next-heading)))))
 
 (defun epresent-first-page ()
   "Present the first outline heading."
-  (interactive))
+  (interactive)
+  (goto-char (point-min))
+  (outline-next-heading)
+  (epresent-display-current-page))
 
 (defun epresent-display-next-page ()
   "Present the next outline heading."
-  (interactive))
+  (interactive)
+  (epresent-goto-top-level)
+  (outline-next-heading)
+  (epresent-display-current-page))
 
 (defun epresent-display-previous-page ()
   "Present the previous outline heading."
-  (interactive))
+  (interactive)
+  (epresent-goto-top-level)
+  (outline-previous-heading)
+  (epresent-display-current-page))
 
 (defun epresent-display-quit ()
   "Quit the current presentation."
@@ -121,14 +138,14 @@
   (delete-frame (selected-frame)))
 
 (defun epresent-increase-font ()
-  ""
+  "Increase the presentation font size."
   (interactive)
   (dolist (face
            '(epresent-title-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1+ (face-attribute face :height)))))
 
 (defun epresent-decrease-font ()
-  ""
+  "Decrease the presentation font size."
   (interactive)
   (dolist (face
            '(epresent-title-face epresent-content-face epresent-fixed-face))
