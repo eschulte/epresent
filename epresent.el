@@ -95,17 +95,19 @@
 ;; functions
 (defun epresent-goto-top-level ()
   "Go to the current top level heading containing point."
+  (interactive)
+  (unless (org-at-heading-p) (outline-previous-heading))
   (let ((level (org-current-level)))
-    (when level
-      (outline-up-heading (- level 1))
-      (org-narrow-to-subtree))))
+    (when (and level (> level 1))
+      (outline-up-heading (- level 1)))))
 
-(defun epresent-display-current-page ()
+(defun epresent-current-page ()
   "Present the current outline heading."
   (interactive)
   (if (org-current-level)
       (progn
         (epresent-goto-top-level)
+        (org-show-subtree)
         (org-narrow-to-subtree))
     ;; if before first headline just show the buffer preamble
     (narrow-to-region (point-min) (save-excursion (goto-char (point-min))
@@ -115,27 +117,32 @@
   "Present the first outline heading."
   (interactive)
   (goto-char (point-min))
-  (outline-next-heading)
-  (epresent-display-current-page))
+  (widen)
+  (org-get-next-sibling)
+  (epresent-current-page))
 
-(defun epresent-display-next-page ()
+(defun epresent-next-page ()
   "Present the next outline heading."
   (interactive)
   (epresent-goto-top-level)
-  (outline-next-heading)
-  (epresent-display-current-page))
+  (widen)
+  (org-get-next-sibling)
+  (epresent-current-page))
 
-(defun epresent-display-previous-page ()
+(defun epresent-previous-page ()
   "Present the previous outline heading."
   (interactive)
   (epresent-goto-top-level)
-  (outline-previous-heading)
-  (epresent-display-current-page))
+  (widen)
+  (org-get-last-sibling)
+  (epresent-current-page))
 
-(defun epresent-display-quit ()
+(defun epresent-quit ()
   "Quit the current presentation."
   (interactive)
-  (delete-frame (selected-frame)))
+  (delete-frame (selected-frame))
+  (org-mode)
+  (widen))
 
 (defun epresent-increase-font ()
   "Increase the presentation font size."
@@ -151,16 +158,16 @@
            '(epresent-title-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1- (face-attribute face :height)))))
 
-(defvar epresent-display-mode-map
+(defvar epresent-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
-    (define-key map " " 'epresent-display-next-page)
-    (define-key map "n" 'epresent-display-next-page)
-    (define-key map [right] 'epresent-display-next-page)
-    (define-key map "p" 'epresent-display-previous-page)
-    (define-key map [left] 'epresent-display-previous-page)
-    (define-key map [backspace] 'epresent-display-previous-page)
-    (define-key map "q" 'epresent-display-quit)
+    (define-key map " " 'epresent-next-page)
+    (define-key map "n" 'epresent-next-page)
+    (define-key map [right] 'epresent-next-page)
+    (define-key map "p" 'epresent-previous-page)
+    (define-key map [left] 'epresent-previous-page)
+    (define-key map [backspace] 'epresent-previous-page)
+    (define-key map "q" 'epresent-quit)
     (define-key map "+" 'epresent-increase-font)
     (define-key map "=" 'epresent-increase-font) ; silly binding
     (define-key map "-" 'epresent-decrease-font)
@@ -168,7 +175,7 @@
     map)
   "Local keymap for EPresent display mode.")
 
-(define-derived-mode epresent-display-mode 'org-mode "EPresent"
+(define-derived-mode epresent-mode org-mode "EPresent"
   "Lalala."
   (text-scale-adjust 0)
   (text-scale-adjust epresent-text-scale)
@@ -178,12 +185,11 @@
 ;;;###autoload
 (defun epresent-run-frame ()
   (interactive)
-  (unless (or (eq major-mode 'outline-mode)
-              (eq major-mode 'org-mode))
+  (unless (eq major-mode 'org-mode)
     (error "EPresent can only be used from Org Mode"))
   (epresent--get-frame)
-  (epresent-display-mode)
-  (epresent-display-first-page))
+  (epresent-mode)
+  (epresent-first-page))
 
 ;;;###autoload(global-set-key [f12] 'epresent-run-frame)
 
