@@ -1,8 +1,9 @@
 ;;; epresent.el --- Simple presentation mode for Emacs Org-mode
 
 ;; Copyright (C) 2008 Tom Tromey <tromey@redhat.com>
+;;               2010 Eric Schulte <schulte.eric@gmail.com>
 
-;; Author: Tom Tromey <tromey@redhat.com>
+;; Authors: Tom Tromey <tromey@redhat.com>, Eric Schulte <schulte.eric@gmail.com>
 ;; Created: 12 Jun 2008
 ;; Version: 0.1
 ;; Keywords: gui
@@ -30,7 +31,7 @@
 ;; This is a simple presentation mode for Emacs.  It works best in
 ;; Emacs 23, which has nicer font rendering.
 
-;; To use, invoke epresent-run-frame in an org-mode buffer.  This
+;; To use, invoke epresent-run in an org-mode buffer.  This
 ;; will make a full-screen frame.  Use n/p to navigate, or q to quit.
 ;; (There are some other key bindings too.)  Each top-level headline
 ;; becomes a page in the presentation and Org-mode markup is used
@@ -39,38 +40,31 @@
 ;;; Code:
 (require 'org)
 
+(defface epresent-main-title-face
+  '((t :weight bold :height 2.4 :underline t :inherit variable-pitch))
+  "")
 (defface epresent-title-face
   '((t :weight bold :height 1.8 :underline t :inherit variable-pitch))
   "")
-(defface epresent-content-face
-  '((t :height 1.0 :inherit variable-pitch))
-  "")
-(defface epresent-list-face
-  '((t :height 0.9 :inherit variable-pitch))
-  "")
-(defface epresent-fixed-face
-  '((t :height 1.0 :inherit fixed-pitch))
-  "")
-(defface epresent-box-face
-  '((t :box t :inherit epresent-fixed-face))
-  "")
 (defface epresent-subtitle-face
-  '((t :height 0.7 :inherit variable-pitch))
+  '((t :weight bold :height 1.6 :inherit variable-pitch))
   "")
-(defface epresent-url-face
-  '((t :height 1.0 :inherit variable-pitch
-       :foreground "blue" :underline t))
+(defface epresent-author-face
+  '((t :height 1.6 :inherit variable-pitch))
   "")
-(defface epresent-spacer-face
-  '((t :height 0.5 :inherit variable-pitch))
+(defface epresent-hidden-face
+  '((t :invisible t))
   "")
-
-(defvar epresent--org-top-rx "^[*] ")
 
 (defvar epresent--frame nil
   "Frame for EPresent.")
 
+(defvar epresent--org-buffer nil
+  "Original Org-mode buffer")
+
 (defvar epresent-text-scale 3)
+
+(defvar epresent-overlays nil)
 
 (defconst epresent-spacer
   (propertize "\n" 'face 'epresent-spacer-face))
@@ -109,16 +103,14 @@
         (epresent-goto-top-level)
         (org-show-subtree)
         (org-narrow-to-subtree))
-    ;; if before first headline just show the buffer preamble
-    (narrow-to-region (point-min) (save-excursion (goto-char (point-min))
-                                                  (outline-next-heading)))))
+    ;; before first headline -- fold up subtrees as TOC
+    (org-cycle '(4))))
 
-(defun epresent-first-page ()
+(defun epresent-top ()
   "Present the first outline heading."
   (interactive)
-  (goto-char (point-min))
   (widen)
-  (org-get-next-sibling)
+  (goto-char (point-min))
   (epresent-current-page))
 
 (defun epresent-next-page ()
@@ -134,15 +126,25 @@
   (interactive)
   (epresent-goto-top-level)
   (widen)
-  (org-get-last-sibling)
+  (or (org-get-last-sibling) (goto-char (point-min)))
   (epresent-current-page))
+
+(defun epresent-clean-overlays ()
+  (interactive)
+  (mapc 'delete-overlay epresent-overlays)
+  (setq epresent-overlays nil))
 
 (defun epresent-quit ()
   "Quit the current presentation."
   (interactive)
-  (delete-frame (selected-frame))
+  (when (string= "EPresent" (frame-parameter nil 'title))
+    (delete-frame (selected-frame)))
+  (when epresent--org-buffer
+    (set-buffer epresent--org-buffer))
   (org-mode)
-  (widen))
+  (widen)
+  ;; delete all epresent overlays
+  (epresent-clean-overlays))
 
 (defun epresent-increase-font ()
   "Increase the presentation font size."
@@ -158,6 +160,43 @@
            '(epresent-title-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1- (face-attribute face :height)))))
 
+(defun epresent-fontify ()
+  "Overlay additional presentation faces to Org-mode."
+  (save-excursion
+    ;; hide all comments
+    (goto-char (point-min))
+    (while (re-search-forward "^[ \t]*#\\(\\+\\(author\\|title\\):\\)?.*\n"
+                              nil t)
+      (unless (and (match-string 2)
+                   (save-match-data
+                     (string-match (regexp-opt '("title" "author"))
+                                   (match-string 2))))
+        (push (make-overlay (match-beginning 0) (match-end 0)) epresent-overlays)
+        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
+    ;; page title faces
+    (goto-char (point-min))
+    (while (re-search-forward "^\\(*+\\)[ \t]*\\(.*\\)$" nil t)
+      (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
+      (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
+      (if (> (length (match-string 1)) 1)
+          (overlay-put (car epresent-overlays) 'face 'epresent-subtitle-face)
+        (overlay-put (car epresent-overlays) 'face 'epresent-title-face)))
+    ;; presentation title
+    (goto-char (point-min))
+    (when (re-search-forward "^\\(#\\+title:\\)[ \t]*\\(.*\\)$" nil t)
+      (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
+      (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'face 'epresent-main-title-face))
+    ;; author faces
+    (goto-char (point-min))
+    (when (re-search-forward "^\\(#\\+author:\\)[ \t]*\\(.*\\)$" nil t)
+      (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
+      (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'face 'epresent-author-face))))
+
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
@@ -168,10 +207,8 @@
     (define-key map [left] 'epresent-previous-page)
     (define-key map [backspace] 'epresent-previous-page)
     (define-key map "q" 'epresent-quit)
-    (define-key map "+" 'epresent-increase-font)
-    (define-key map "=" 'epresent-increase-font) ; silly binding
-    (define-key map "-" 'epresent-decrease-font)
-    (define-key map "1" 'epresent-first-page)
+    (define-key map "1" 'epresent-top)
+    (define-key map "t" 'epresent-top)
     map)
   "Local keymap for EPresent display mode.")
 
@@ -179,19 +216,28 @@
   "Lalala."
   (text-scale-adjust 0)
   (text-scale-adjust epresent-text-scale)
+  ;; make Org-mode be as pretty as possible
   (setq org-inline-image-overlays t)
-  (setq org-src-fontify-natively t))
+  (setq org-src-fontify-natively t)
+  (let ((org-format-latex-options
+         (plist-put org-format-latex-options :scale 4.0)))
+    (org-preview-latex-fragment 16))
+  ;; fontify the buffer
+  (add-to-invisibility-spec '(epresent-hide))
+  (epresent-fontify))
 
 ;;;###autoload
-(defun epresent-run-frame ()
+(defun epresent-run ()
+  "Present an Org-mode buffer."
   (interactive)
   (unless (eq major-mode 'org-mode)
     (error "EPresent can only be used from Org Mode"))
+  (setq epresent--org-buffer (current-buffer))
   (epresent--get-frame)
   (epresent-mode)
-  (epresent-first-page))
+  (epresent-top) (epresent-top))
 
-;;;###autoload(global-set-key [f12] 'epresent-run-frame)
+;;;###autoload(global-set-key [f12] 'epresent-run)
 
 (provide 'epresent)
 ;;; epresent.el ends here
