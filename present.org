@@ -1,0 +1,48 @@
+#+Title: Example Presentation
+#+Author: Eric Schulte
+
+* One -- intro
+# a comment, which will not be displayed
+
+Simple presentations run by Emacs
+- run in Emacs
+- uses Org-mode markup
+- looks pretty good
+
+** with subheadings
+and some other stuff
+
+* Two -- source code
+
+Call =epresent-run= to present an Org-mode buffer.
+
+#+begin_src emacs-lisp
+  ;;;###autoload
+  (defun epresent-run ()
+    (interactive)
+    (unless (eq major-mode 'org-mode)
+      (error "EPresent can only be used from Org Mode"))
+    (setq epresent--org-buffer (current-buffer))
+    (epresent--get-frame)
+    (epresent-mode)
+    (epresent-top))
+#+end_src
+
+* Three -- LaTeX Images
+
+Kinetic Energy:
+
+\begin{equation*}
+  e = \frac{1}{2}mv^2
+\end{equation*}
+
+* Four -- Tables
+
+Squares
+| 1 |  1 |
+| 2 |  4 |
+| 3 |  9 |
+| 4 | 16 |
+| 5 | 25 |
+| 6 | 36 |
+#+TBLFM: $2=$1*$1
