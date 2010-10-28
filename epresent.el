@@ -224,6 +224,8 @@
     (org-preview-latex-fragment 16))
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
+  ;; remove flyspell overlays
+  (org-remove-flyspell-overlays-in (point-min) (point-max))
   (epresent-fontify))
 
 ;;;###autoload
@@ -234,8 +236,7 @@
     (error "EPresent can only be used from Org Mode"))
   (setq epresent--org-buffer (current-buffer))
   (epresent--get-frame)
-  (epresent-mode)
-  (epresent-top) (epresent-top))
+  (epresent-mode))
 
 ;;;###autoload(global-set-key [f12] 'epresent-run)
 
