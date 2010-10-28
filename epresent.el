@@ -66,8 +66,8 @@
 
 (defvar epresent-overlays nil)
 
-(defconst epresent-spacer
-  (propertize "\n" 'face 'epresent-spacer-face))
+(defvar epresent-inline-image-overlays nil)
+(defvar epresent-src-fontify-natively nil)
 
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
@@ -137,6 +137,9 @@
 (defun epresent-quit ()
   "Quit the current presentation."
   (interactive)
+  ;; restore the user's Org-mode variables
+  (setq org-inline-image-overlays epresent-inline-image-overlays)
+  (setq org-src-fontify-natively epresent-src-fontify-natively)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
   (when epresent--org-buffer
@@ -217,7 +220,9 @@
   (text-scale-adjust 0)
   (text-scale-adjust epresent-text-scale)
   ;; make Org-mode be as pretty as possible
+  (setq epresent-inline-image-overlays org-inline-image-overlays)
   (setq org-inline-image-overlays t)
+  (setq epresent-src-fontify-natively org-src-fontify-natively)
   (setq org-src-fontify-natively t)
   (let ((org-format-latex-options
          (plist-put org-format-latex-options :scale 4.0)))
