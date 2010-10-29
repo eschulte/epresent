@@ -200,7 +200,9 @@
       (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
       (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
       (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
-      (overlay-put (car epresent-overlays) 'face 'epresent-author-face))))
+      (overlay-put (car epresent-overlays) 'face 'epresent-author-face))
+    ;; inline images
+    (org-display-inline-images)))
 
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
@@ -223,7 +225,6 @@
   (text-scale-adjust epresent-text-scale)
   ;; make Org-mode be as pretty as possible
   (setq epresent-inline-image-overlays org-inline-image-overlays)
-  (setq org-inline-image-overlays t)
   (setq epresent-src-fontify-natively org-src-fontify-natively)
   (setq org-src-fontify-natively t)
   (let ((org-format-latex-options

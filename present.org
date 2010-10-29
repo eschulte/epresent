@@ -28,7 +28,7 @@ Call =epresent-run= to present an Org-mode buffer.
     (epresent-top))
 #+end_src
 
-* Three -- LaTeX Images
+* Three -- LaTeX images
 
 Kinetic Energy:
 
@@ -36,7 +36,7 @@ Kinetic Energy:
   e = \frac{1}{2}mv^2
 \end{equation*}
 
-* Four -- Tables
+* Four -- tables
 
 Squares
 | 1 |  1 |
@@ -46,3 +46,8 @@ Squares
 | 5 | 25 |
 | 6 | 36 |
 #+TBLFM: $2=$1*$1
+
+* Five -- images
+
+in-line image display
+[[file:org-mode-unicorn.png]]
