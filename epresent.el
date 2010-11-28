@@ -42,13 +42,13 @@
 (require 'org-exp)
 (require 'org-latex)
 
-(defface epresent-main-title-face
+(defface epresent-title-face
   '((t :weight bold :height 2.4 :underline t :inherit variable-pitch))
   "")
-(defface epresent-title-face
+(defface epresent-heading-face
   '((t :weight bold :height 1.8 :underline t :inherit variable-pitch))
   "")
-(defface epresent-subtitle-face
+(defface epresent-subheading-face
   '((t :weight bold :height 1.6 :inherit variable-pitch))
   "")
 (defface epresent-author-face
@@ -157,14 +157,14 @@
   "Increase the presentation font size."
   (interactive)
   (dolist (face
-           '(epresent-title-face epresent-content-face epresent-fixed-face))
+           '(epresent-heading-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1+ (face-attribute face :height)))))
 
 (defun epresent-decrease-font ()
   "Decrease the presentation font size."
   (interactive)
   (dolist (face
-           '(epresent-title-face epresent-content-face epresent-fixed-face))
+           '(epresent-heading-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1- (face-attribute face :height)))))
 
 (defun epresent-fontify ()
@@ -172,11 +172,12 @@
   (save-excursion
     ;; hide all comments
     (goto-char (point-min))
-    (while (re-search-forward "^[ \t]*#\\(\\+\\(author\\|title\\):\\)?.*\n"
-                              nil t)
+    (while (re-search-forward
+            "^[ \t]*#\\(\\+\\(author\\|title\\|date\\):\\)?.*\n"
+            nil t)
       (unless (and (match-string 2)
                    (save-match-data
-                     (string-match (regexp-opt '("title" "author"))
+                     (string-match (regexp-opt '("title" "author" "date"))
                                    (match-string 2))))
         (push (make-overlay (match-beginning 0) (match-end 0)) epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
@@ -187,22 +188,16 @@
       (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
       (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
       (if (> (length (match-string 1)) 1)
-          (overlay-put (car epresent-overlays) 'face 'epresent-subtitle-face)
-        (overlay-put (car epresent-overlays) 'face 'epresent-title-face)))
-    ;; presentation title
-    (goto-char (point-min))
-    (when (re-search-forward "^\\(#\\+title:\\)[ \t]*\\(.*\\)$" nil t)
-      (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
-      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
-      (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
-      (overlay-put (car epresent-overlays) 'face 'epresent-main-title-face))
-    ;; author faces
-    (goto-char (point-min))
-    (when (re-search-forward "^\\(#\\+author:\\)[ \t]*\\(.*\\)$" nil t)
-      (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
-      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
-      (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
-      (overlay-put (car epresent-overlays) 'face 'epresent-author-face))
+          (overlay-put (car epresent-overlays) 'face 'epresent-subheading-face)
+        (overlay-put (car epresent-overlays) 'face 'epresent-heading-face)))
+    (dolist (el '("title" "author" "date"))
+      (goto-char (point-min))
+      (when (re-search-forward (format "^\\(#\\+%s:\\)[ \t]*\\(.*\\)$" el) nil t)
+        (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
+        (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
+        (overlay-put
+         (car epresent-overlays) 'face (intern (format "epresent-%s-face" el)))))
     ;; inline images
     (org-display-inline-images)))
 
