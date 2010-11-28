@@ -70,6 +70,7 @@
 
 (defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
+(defvar epresent-hide-emphasis-markers nil)
 
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
@@ -142,6 +143,7 @@
   ;; restore the user's Org-mode variables
   (setq org-inline-image-overlays epresent-inline-image-overlays)
   (setq org-src-fontify-natively epresent-src-fontify-natively)
+  (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
   (when epresent--org-buffer
@@ -227,6 +229,8 @@
   (setq epresent-inline-image-overlays org-inline-image-overlays)
   (setq epresent-src-fontify-natively org-src-fontify-natively)
   (setq org-src-fontify-natively t)
+  (setq epresent-hide-emphasis-markers org-hide-emphasis-markers)
+  (setq org-hide-emphasis-markers t)
   (let ((org-format-latex-options
          (plist-put org-format-latex-options :scale 4.0)))
     (org-preview-latex-fragment 16))
