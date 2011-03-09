@@ -72,6 +72,9 @@
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
 
+(defvar epresent-mode-line nil
+  "Set the mode-line format. Hides it when nil")
+
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
     (setq epresent--frame (make-frame '((minibuffer . nil)
@@ -226,6 +229,7 @@
   (setq org-src-fontify-natively t)
   (setq epresent-hide-emphasis-markers org-hide-emphasis-markers)
   (setq org-hide-emphasis-markers t)
+  (setq mode-line-format epresent-mode-line)
   (let ((org-format-latex-options
          (plist-put org-format-latex-options :scale 4.0)))
     (org-preview-latex-fragment 16))
