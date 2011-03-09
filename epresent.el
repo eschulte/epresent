@@ -72,6 +72,7 @@
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-hide-tags t)
+(defvar epresent-hide-properties t)
 
 (defvar epresent-mode-line nil
   "Set the mode-line format. Hides it when nil")
@@ -202,6 +203,16 @@
               nil t)
         (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
+    ;; hide properties
+    (when epresent-hide-properties
+      (goto-char (point-min))
+      (while (re-search-forward org-drawer-regexp nil t)
+        (let ((beg (match-beginning 0))
+              (end (re-search-forward
+                    "^[ \t]*:END:[ \r\n]*"
+                    (save-excursion (outline-next-heading) (point)) t)))
+          (push (make-overlay beg end) epresent-overlays)
+          (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     (dolist (el '("title" "author" "date"))
       (goto-char (point-min))
       (when (re-search-forward (format "^\\(#\\+%s:\\)[ \t]*\\(.*\\)$" el) nil t)

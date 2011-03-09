@@ -2,6 +2,9 @@
 #+Author: Eric Schulte
 
 * One -- intro                                              :hello:world:
+  :PROPERTIES:
+  :ARCHIVE:  hello
+  :END:
 # a comment, which will not be displayed
 
 Simple presentations run by Emacs
