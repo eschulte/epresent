@@ -1,7 +1,7 @@
 #+Title: Example Presentation
 #+Author: Eric Schulte
 
-* One -- intro                                              :hello:world:
+* TODO One -- intro                                             :hello:world:
   :PROPERTIES:
   :ARCHIVE:  hello
   :END:
@@ -15,7 +15,7 @@ Simple presentations run by Emacs
 ** with subheadings
 and some other stuff
 
-* Two -- source code
+* DONE Two -- source code
 
 Call =epresent-run= to present an Org-mode buffer.
 

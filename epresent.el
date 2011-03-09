@@ -71,6 +71,7 @@
 (defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
+(defvar epresent-hide-todos t)
 (defvar epresent-hide-tags t)
 (defvar epresent-hide-properties t)
 
@@ -195,6 +196,12 @@
       (if (> (length (match-string 1)) 1)
           (overlay-put (car epresent-overlays) 'face 'epresent-subheading-face)
         (overlay-put (car epresent-overlays) 'face 'epresent-heading-face)))
+    ;; hide todos
+    (when epresent-hide-todos
+      (goto-char (point-min))
+      (while (re-search-forward org-todo-regexp nil t) 
+        (push (make-overlay (match-beginning 1) (1+ (match-end 1))) epresent-overlays)
+        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
     ;; hide tags
     (when epresent-hide-tags
       (goto-char (point-min))
