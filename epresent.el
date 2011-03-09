@@ -71,6 +71,7 @@
 (defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
+(defvar epresent-hide-tags t)
 
 (defvar epresent-mode-line nil
   "Set the mode-line format. Hides it when nil")
@@ -193,6 +194,14 @@
       (if (> (length (match-string 1)) 1)
           (overlay-put (car epresent-overlays) 'face 'epresent-subheading-face)
         (overlay-put (car epresent-overlays) 'face 'epresent-heading-face)))
+    ;; hide tags
+    (when epresent-hide-tags
+      (goto-char (point-min))
+      (while (re-search-forward 
+              (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]") 
+              nil t)
+        (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
     (dolist (el '("title" "author" "date"))
       (goto-char (point-min))
       (when (re-search-forward (format "^\\(#\\+%s:\\)[ \t]*\\(.*\\)$" el) nil t)
