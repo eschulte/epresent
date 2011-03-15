@@ -54,6 +54,9 @@
 (defface epresent-author-face
   '((t :height 1.6 :inherit variable-pitch))
   "")
+(defface epresent-bullet-face
+  '((t :weight bold :height 1.8 :underline nil :inherit variable-pitch))
+  "")
 (defface epresent-hidden-face
   '((t :invisible t))
   "")
@@ -196,11 +199,19 @@
       (if (> (length (match-string 1)) 1)
           (overlay-put (car epresent-overlays) 'face 'epresent-subheading-face)
         (overlay-put (car epresent-overlays) 'face 'epresent-heading-face)))
+    (goto-char (point-min))
+    ;; fancy bullet points
+    (while (re-search-forward "^[ \t]*\\(-\\) " nil t)
+      (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
+      (overlay-put (car epresent-overlays)
+                   'before-string (propertize "•" 'face 'epresent-bullet-face)))
     ;; hide todos
     (when epresent-hide-todos
       (goto-char (point-min))
       (while (re-search-forward org-todo-regexp nil t) 
-        (push (make-overlay (match-beginning 1) (1+ (match-end 1))) epresent-overlays)
+        (push (make-overlay (match-beginning 1) (1+ (match-end 1)))
+              epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
     ;; hide tags
     (when epresent-hide-tags
