@@ -285,7 +285,8 @@
     (error "EPresent can only be used from Org Mode"))
   (setq epresent--org-buffer (current-buffer))
   (epresent--get-frame)
-  (epresent-mode))
+  (epresent-mode)
+  (set-buffer-modified-p nil))
 
 ;;;###autoload(global-set-key [f12] 'epresent-run)
 
