@@ -78,6 +78,9 @@
 (defvar epresent-hide-tags t)
 (defvar epresent-hide-properties t)
 
+(defvar epresent-frame-level 1)
+(make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
+
 (defvar epresent-mode-line nil
   "Set the mode-line format. Hides it when nil")
 
@@ -99,13 +102,25 @@
   epresent--frame)
 
 ;; functions
+(defun epresent-get-frame-level ()
+  "Get the heading level to show as different frames."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (if (re-search-forward
+           "^#\\+EPRESENT_FRAME_LEVEL:[ \t]*\\(.*?\\)[ \t]*$" nil t)
+          (string-to-number (match-string 1))
+        1))))
+
 (defun epresent-goto-top-level ()
   "Go to the current top level heading containing point."
   (interactive)
   (unless (org-at-heading-p) (outline-previous-heading))
-  (let ((level (org-current-level)))
-    (when (and level (> level 1))
-      (outline-up-heading (- level 1)))))
+  (let ((level (ignore-errors (org-reduced-level (org-current-level)))))
+    (when (and level (> level epresent-frame-level))
+      (org-up-heading-all (- level epresent-frame-level)))))
 
 (defun epresent-current-page ()
   "Present the current outline heading."
@@ -114,7 +129,10 @@
       (progn
         (epresent-goto-top-level)
         (org-show-subtree)
-        (org-narrow-to-subtree))
+        (org-narrow-to-subtree)
+        (when (< (org-reduced-level (org-current-level))
+                 epresent-frame-level)
+          (org-cycle '(16)))) ;; this doesn't seem to be working
     ;; before first headline -- fold up subtrees as TOC
     (org-cycle '(4))))
 
@@ -130,7 +148,10 @@
   (interactive)
   (epresent-goto-top-level)
   (widen)
-  (org-get-next-sibling)
+  (if (< (or (ignore-errors (org-reduced-level (org-current-level))) 0)
+         epresent-frame-level)
+      (outline-next-heading)
+    (org-get-next-sibling))
   (epresent-current-page))
 
 (defun epresent-previous-page ()
@@ -138,7 +159,11 @@
   (interactive)
   (epresent-goto-top-level)
   (widen)
-  (or (org-get-last-sibling) (goto-char (point-min)))
+  (org-content)
+  (if (< (or (ignore-errors (org-reduced-level (org-current-level))) 0)
+         epresent-frame-level)
+      (outline-previous-heading)
+    (org-get-last-sibling))
   (epresent-current-page))
 
 (defun epresent-clean-overlays ()
@@ -283,6 +308,7 @@
   (interactive)
   (unless (eq major-mode 'org-mode)
     (error "EPresent can only be used from Org Mode"))
+  (setq epresent-frame-level (epresent-get-frame-level))
   (setq epresent--org-buffer (current-buffer))
   (epresent--get-frame)
   (epresent-mode)

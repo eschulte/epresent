@@ -1,6 +1,6 @@
 #+Title: Example Presentation
 #+Author: Eric Schulte
-
+#+EPRESENT_FRAME_LEVEL: 1
 * TODO One -- intro                                             :hello:world:
   :PROPERTIES:
   :ARCHIVE:  hello
