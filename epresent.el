@@ -128,11 +128,10 @@
   (if (org-current-level)
       (progn
         (epresent-goto-top-level)
-        (org-show-subtree)
         (org-narrow-to-subtree)
-        (when (< (org-reduced-level (org-current-level))
-                 epresent-frame-level)
-          (org-cycle '(16)))) ;; this doesn't seem to be working
+        (when (>= (org-reduced-level (org-current-level))
+                  epresent-frame-level)
+          (org-show-subtree)))
     ;; before first headline -- fold up subtrees as TOC
     (org-cycle '(4))))
 
