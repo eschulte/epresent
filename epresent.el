@@ -129,6 +129,8 @@
       (progn
         (epresent-goto-top-level)
         (org-narrow-to-subtree)
+	(show-all)
+	(hide-body)
         (when (>= (org-reduced-level (org-current-level))
                   epresent-frame-level)
           (org-show-subtree)))
