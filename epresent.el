@@ -175,6 +175,8 @@
 (defun epresent-quit ()
   "Quit the current presentation."
   (interactive)
+  ;; restore the font size
+  (text-scale-adjust (/ 1 epresent-text-scale))
   ;; restore the user's Org-mode variables
   (setq org-inline-image-overlays epresent-inline-image-overlays)
   (setq org-src-fontify-natively epresent-src-fontify-natively)
