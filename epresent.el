@@ -74,6 +74,7 @@
 (defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
+(defvar epresent-format-latex-scale nil)
 (defvar epresent-hide-todos t)
 (defvar epresent-hide-tags t)
 (defvar epresent-hide-properties t)
@@ -177,12 +178,12 @@
   (interactive)
   ;; restore the font size
   (text-scale-adjust (/ 1 epresent-text-scale))
-  (plist-put org-format-latex-options :scale 0.0)
   (org-remove-latex-fragment-image-overlays)
   ;; restore the user's Org-mode variables
   (setq org-inline-image-overlays epresent-inline-image-overlays)
   (setq org-src-fontify-natively epresent-src-fontify-natively)
   (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
+  (plist-put org-format-latex-options :scale epresent-format-latex-scale)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
   (when epresent--org-buffer
@@ -298,6 +299,7 @@
   (setq epresent-hide-emphasis-markers org-hide-emphasis-markers)
   (setq org-hide-emphasis-markers t)
   (setq mode-line-format epresent-mode-line)
+  (setq epresent-format-latex-scale (plist-get org-format-latex-options :scale))
   (let ((org-format-latex-options
          (plist-put org-format-latex-options :scale 4.0)))
     (org-preview-latex-fragment 16))
