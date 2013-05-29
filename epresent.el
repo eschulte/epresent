@@ -39,8 +39,8 @@
 
 ;;; Code:
 (require 'org)
-(require 'org-exp)
-(require 'org-latex)
+(require 'ox)
+(require 'ox-latex)
 
 (defface epresent-title-face
   '((t :weight bold :height 2.4 :underline t :inherit variable-pitch))
