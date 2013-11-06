@@ -306,7 +306,7 @@
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
   ;; remove flyspell overlays
-  (org-remove-flyspell-overlays-in (point-min) (point-max))
+  (flyspell-mode-off)
   (epresent-fontify))
 
 ;;;###autoload
