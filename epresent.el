@@ -67,6 +67,12 @@
 (defvar epresent--org-buffer nil
   "Original Org-mode buffer")
 
+(defvar epresent--org-restriction nil
+  "Original restriction in Org-mode buffer.")
+
+(defvar epresent--org-file nil
+  "Temporary Org-mode file used when a narrowed region.")
+
 (defvar epresent-text-scale 3)
 
 (defvar epresent-overlays nil)
@@ -186,10 +192,16 @@
   (plist-put org-format-latex-options :scale epresent-format-latex-scale)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
+  (when epresent--org-file
+    (kill-buffer (get-file-buffer epresent--org-file))
+    (when (file-exists-p epresent--org-file)
+      (delete-file epresent--org-file)))
   (when epresent--org-buffer
     (set-buffer epresent--org-buffer))
   (org-mode)
-  (widen)
+  (if epresent--org-restriction
+      (apply #'narrow-to-region epresent--org-restriction)
+    (widen))
   ;; delete all epresent overlays
   (epresent-clean-overlays))
 
@@ -315,8 +327,19 @@
   (interactive)
   (unless (eq major-mode 'org-mode)
     (error "EPresent can only be used from Org Mode"))
-  (setq epresent-frame-level (epresent-get-frame-level))
   (setq epresent--org-buffer (current-buffer))
+  ;; To present narrowed region use temporary buffer
+  (when (and (or (> (point-min) (save-restriction (widen) (point-min)))
+                 (< (point-max) (save-restriction (widen) (point-max))))
+             (save-excursion (goto-char (point-min)) (org-at-heading-p)))
+    (let ((title (nth 4 (org-heading-components))))
+      (setq epresent--org-restriction (list (point-min) (point-max)))
+      (require 'ox-org)
+      (setq epresent--org-file (org-org-export-to-org nil 'subtree))
+      (find-file epresent--org-file)
+      (goto-char (point-min))
+      (insert (format "#+Title: %s\n\n" title))))
+  (setq epresent-frame-level (epresent-get-frame-level))
   (epresent--get-frame)
   (epresent-mode)
   (set-buffer-modified-p nil))
