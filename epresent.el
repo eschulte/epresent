@@ -55,7 +55,7 @@
   '((t :height 1.6 :inherit variable-pitch))
   "")
 (defface epresent-bullet-face
-  '((t :weight bold :height 1.8 :underline nil :inherit variable-pitch))
+  '((t :weight bold :height 1.4 :underline nil :inherit variable-pitch))
   "")
 (defface epresent-hidden-face
   '((t :invisible t))
