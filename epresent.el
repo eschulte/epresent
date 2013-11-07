@@ -288,12 +288,19 @@
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
+    ;; line movement
+    (define-key map "j" 'scroll-up)
+    (define-key map [down] 'scroll-up)
+    (define-key map "k" 'scroll-down)
+    (define-key map [up] 'scroll-down)
+    ;; page movement
     (define-key map " " 'epresent-next-page)
     (define-key map "n" 'epresent-next-page)
     (define-key map [right] 'epresent-next-page)
     (define-key map "p" 'epresent-previous-page)
     (define-key map [left] 'epresent-previous-page)
     (define-key map [backspace] 'epresent-previous-page)
+    ;; global controls
     (define-key map "q" 'epresent-quit)
     (define-key map "1" 'epresent-top)
     (define-key map "t" 'epresent-top)
