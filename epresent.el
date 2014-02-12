@@ -293,6 +293,21 @@
     ;; inline images
     (org-display-inline-images)))
 
+(defun epresent-flash-cursor ()
+  (setq cursor-type 'hollow)
+  (sit-for 0.5)
+  (setq cursor-type nil))
+
+(defun epresent-next-src-block (&optional arg)
+  (interactive "P")
+  (org-babel-next-src-block arg)
+  (epresent-flash-cursor))
+
+(defun epresent-previous-src-block (&optional arg)
+  (interactive "P")
+  (org-babel-previous-src-block arg)
+  (epresent-flash-cursor))
+
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
@@ -310,9 +325,9 @@
     (define-key map "b" 'epresent-previous-page)
     (define-key map [left] 'epresent-previous-page)
     (define-key map [backspace] 'epresent-previous-page)
-    ;; within page movement
-    ;; TODO: maybe highlight the current code block
-    (define-key map "c" 'org-babel-next-src-block)
+    ;; within page functions
+    (define-key map "c" 'epresent-next-src-block)
+    (define-key map "C" 'epresent-previous-src-block)
     ;; global controls
     (define-key map "q" 'epresent-quit)
     (define-key map "1" 'epresent-top)
