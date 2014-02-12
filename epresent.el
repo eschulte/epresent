@@ -197,6 +197,7 @@
   (setq org-src-fontify-natively epresent-src-fontify-natively)
   (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
   (setq org-pretty-entities epresent-pretty-entities)
+  (remove-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (plist-put org-format-latex-options :scale epresent-format-latex-scale)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
@@ -363,6 +364,7 @@
   (setq org-hide-pretty-entities t)
   (setq mode-line-format epresent-mode-line)
   (setq epresent-format-latex-scale (plist-get org-format-latex-options :scale))
+  (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
          (plist-put org-format-latex-options :scale 4.0)))
     (org-preview-latex-fragment 16))
