@@ -310,6 +310,9 @@
     (define-key map "b" 'epresent-previous-page)
     (define-key map [left] 'epresent-previous-page)
     (define-key map [backspace] 'epresent-previous-page)
+    ;; within page movement
+    ;; TODO: maybe highlight the current code block
+    (define-key map "c" 'org-babel-next-src-block)
     ;; global controls
     (define-key map "q" 'epresent-quit)
     (define-key map "1" 'epresent-top)
