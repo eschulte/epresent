@@ -55,3 +55,19 @@ Squares
 
 in-line image display
 [[file:org-mode-unicorn.png]]
+* Six -- executing source code
+1. Press =c= to move to the next code block.
+   #+begin_src sh
+     date
+   #+end_src
+
+2. Press =C= to move to the previous code block.
+   #+begin_src sh
+     uname -a
+   #+end_src
+
+3. When a code block is executed with =C-c C-c=, the page is refreshed
+   to show the results.
+   #+begin_src sh
+     echo "in $(pwd)"
+   #+end_src
