@@ -304,8 +304,10 @@
     ;; page movement
     (define-key map " " 'epresent-next-page)
     (define-key map "n" 'epresent-next-page)
+    (define-key map "f" 'epresent-next-page)
     (define-key map [right] 'epresent-next-page)
     (define-key map "p" 'epresent-previous-page)
+    (define-key map "b" 'epresent-previous-page)
     (define-key map [left] 'epresent-previous-page)
     (define-key map [backspace] 'epresent-previous-page)
     ;; global controls
