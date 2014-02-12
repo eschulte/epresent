@@ -41,15 +41,16 @@
 (require 'org)
 (require 'ox)
 (require 'ox-latex)
+(require 'cl-lib)
 
 (defface epresent-title-face
-  '((t :weight bold :height 2.4 :underline t :inherit variable-pitch))
+  '((t :weight bold :height 360 :underline t :inherit variable-pitch))
   "")
 (defface epresent-heading-face
-  '((t :weight bold :height 1.8 :underline t :inherit variable-pitch))
+  '((t :weight bold :height 270 :underline t :inherit variable-pitch))
   "")
 (defface epresent-subheading-face
-  '((t :weight bold :height 1.6 :inherit variable-pitch))
+  '((t :weight bold :height 240 :inherit variable-pitch))
   "")
 (defface epresent-author-face
   '((t :height 1.6 :inherit variable-pitch))
@@ -175,10 +176,15 @@
     (org-get-last-sibling))
   (epresent-current-page))
 
-(defun epresent-clean-overlays ()
+(defun epresent-clean-overlays (&optional start end)
   (interactive)
-  (mapc 'delete-overlay epresent-overlays)
-  (setq epresent-overlays nil))
+  (let (kept)
+    (dolist (ov epresent-overlays)
+      (if (or (and start (overlay-start ov) (<= (overlay-start ov) start))
+              (and end   (overlay-end   ov) (>= (overlay-end   ov) end)))
+          (push ov kept)
+        (delete-overlay ov)))
+    (setq epresent-overlays kept)))
 
 (defun epresent-quit ()
   "Quit the current presentation."
@@ -293,6 +299,11 @@
     ;; inline images
     (org-display-inline-images)))
 
+(defun epresent-refresh ()
+  (interactive)
+  (epresent-clean-overlays (point-min) (point-max))
+  (epresent-fontify))
+
 (defun epresent-flash-cursor ()
   (setq cursor-type 'hollow)
   (sit-for 0.5)
@@ -328,6 +339,8 @@
     ;; within page functions
     (define-key map "c" 'epresent-next-src-block)
     (define-key map "C" 'epresent-previous-src-block)
+    (define-key map "r" 'epresent-refresh)
+    (define-key map "g" 'epresent-refresh)
     ;; global controls
     (define-key map "q" 'epresent-quit)
     (define-key map "1" 'epresent-top)
