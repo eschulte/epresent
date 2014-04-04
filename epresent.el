@@ -267,15 +267,15 @@
     ;; hide todos
     (when epresent-hide-todos
       (goto-char (point-min))
-      (while (re-search-forward org-todo-regexp nil t) 
+      (while (re-search-forward org-todo-regexp nil t)
         (push (make-overlay (match-beginning 1) (1+ (match-end 1)))
               epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
     ;; hide tags
     (when epresent-hide-tags
       (goto-char (point-min))
-      (while (re-search-forward 
-              (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]") 
+      (while (re-search-forward
+              (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]")
               nil t)
         (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
@@ -340,6 +340,8 @@
     ;; within page functions
     (define-key map "c" 'epresent-next-src-block)
     (define-key map "C" 'epresent-previous-src-block)
+    (define-key map "e" 'org-edit-src-code)
+    (define-key map "x" 'org-babel-execute-src-block)
     (define-key map "r" 'epresent-refresh)
     (define-key map "g" 'epresent-refresh)
     ;; global controls
