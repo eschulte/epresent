@@ -193,6 +193,7 @@
   (text-scale-adjust (/ 1 epresent-text-scale))
   (org-remove-latex-fragment-image-overlays)
   ;; restore the user's Org-mode variables
+  (remove-hook 'org-src-mode-hook 'epresent-setup-src-edit)
   (setq org-inline-image-overlays epresent-inline-image-overlays)
   (setq org-src-fontify-natively epresent-src-fontify-natively)
   (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
@@ -305,6 +306,10 @@
   (epresent-clean-overlays (point-min) (point-max))
   (epresent-fontify))
 
+(defun epresent-setup-src-edit ()
+  (setq cursor-type 'box)
+  (text-scale-adjust epresent-text-scale))
+
 (defun epresent-flash-cursor ()
   (setq cursor-type 'hollow)
   (sit-for 0.5)
@@ -356,6 +361,7 @@
   (text-scale-adjust 0)
   (text-scale-adjust epresent-text-scale)
   ;; make Org-mode be as pretty as possible
+  (add-hook 'org-src-mode-hook 'epresent-setup-src-edit)
   (setq epresent-inline-image-overlays org-inline-image-overlays)
   (setq epresent-src-fontify-natively org-src-fontify-natively)
   (setq org-src-fontify-natively t)
