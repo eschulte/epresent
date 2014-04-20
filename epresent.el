@@ -212,6 +212,7 @@
   (if epresent--org-restriction
       (apply #'narrow-to-region epresent--org-restriction)
     (widen))
+  (hack-local-variables)
   ;; delete all epresent overlays
   (epresent-clean-overlays))
 
