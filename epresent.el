@@ -406,7 +406,6 @@
   (epresent-mode)
   (set-buffer-modified-p nil))
 
-;;;###autoload
 (define-key org-mode-map [f12] 'epresent-run)
 
 (provide 'epresent)
