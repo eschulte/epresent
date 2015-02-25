@@ -82,6 +82,7 @@
 (defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
+(defvar epresent-outline-ellipsis nil)
 (defvar epresent-pretty-entities nil)
 (defvar epresent-format-latex-scale nil)
 (defvar epresent-hide-todos t)
@@ -198,6 +199,8 @@
   (setq org-inline-image-overlays epresent-inline-image-overlays)
   (setq org-src-fontify-natively epresent-src-fontify-natively)
   (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
+  (set-display-table-slot standard-display-table
+                          'selective-display epresent-outline-ellipsis)
   (setq org-pretty-entities epresent-pretty-entities)
   (remove-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (plist-put org-format-latex-options :scale epresent-format-latex-scale)
@@ -385,6 +388,9 @@
   (setq org-fontify-quote-and-verse-blocks t)
   (setq epresent-hide-emphasis-markers org-hide-emphasis-markers)
   (setq org-hide-emphasis-markers t)
+  (setq epresent-outline-ellipsis
+        (display-table-slot standard-display-table 'selective-display))
+  (set-display-table-slot standard-display-table 'selective-display [32])
   (setq epresent-pretty-entities org-pretty-entities)
   (setq org-hide-pretty-entities t)
   (setq mode-line-format epresent-mode-line)
