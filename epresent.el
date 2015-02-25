@@ -282,10 +282,11 @@
     ;; hide todos
     (when epresent-hide-todos
       (goto-char (point-min))
-      (while (re-search-forward org-todo-regexp nil t)
-        (push (make-overlay (match-beginning 1) (1+ (match-end 1)))
-              epresent-overlays)
-        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
+      (while (re-search-forward org-todo-line-regexp nil t)
+        (when (match-string 2)
+          (push (make-overlay (match-beginning 2) (1+ (match-end 2)))
+                epresent-overlays)
+          (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     ;; hide tags
     (when epresent-hide-tags
       (goto-char (point-min))
