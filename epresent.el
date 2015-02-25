@@ -239,12 +239,24 @@
     (while (re-search-forward
             "^[ \t]*#\\(\\+\\(author\\|title\\|date\\):\\)?.*\n"
             nil t)
-      (unless (and (match-string 2)
-                   (save-match-data
-                     (string-match (regexp-opt '("title" "author" "date"))
-                                   (match-string 2))))
-        (push (make-overlay (match-beginning 0) (match-end 0)) epresent-overlays)
-        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
+      (cond
+       ((and (match-string 2)
+             (save-match-data
+               (string-match (regexp-opt '("title" "author" "date"))
+                             (match-string 2)))))
+       ((and (match-string 2)
+             (save-match-data
+               (string-match org-babel-results-keyword (match-string 2))))
+        ;; This pulls back the end of the hidden overlay by one to
+        ;; avoid hiding image results of code blocks.  I'm not sure
+        ;; why this is required, or why images start on the preceding
+        ;; newline, but not knowing why doesn't make it less true.
+        (push (make-overlay (match-beginning 0) (1- (match-end 0)))
+              epresent-overlays)
+        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))
+       (t (push (make-overlay (match-beginning 0) (1- (match-end 0)))
+                epresent-overlays)
+          (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     ;; page title faces
     (goto-char (point-min))
     (while (re-search-forward "^\\(*+\\)[ \t]*\\(.*\\)$" nil t)
