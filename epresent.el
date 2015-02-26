@@ -95,6 +95,8 @@
 (defvar epresent-mode-line nil
   "Set the mode-line format. Hides it when nil")
 
+(defvar epresent-src-blocks-visible t)
+
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
     (setq epresent--frame (make-frame '((minibuffer . nil)
@@ -220,6 +222,23 @@
   ;; delete all epresent overlays
   (epresent-clean-overlays))
 
+(defun epresent-collect-src-block-overlays ()
+  (save-excursion
+    (goto-char (point-min))
+    (cl-loop
+     while
+      (condition-case err (progn (org-babel-next-src-block) t) (error nil))
+     collect
+      (car (overlays-at (next-overlay-change (next-overlay-change (point))))))))
+
+(defun epresent-toggle-hide-src-blocks ()
+  "Toggle visibility of source blocks."
+  (interactive)
+  (if (member '(epresent-hide-src-block) buffer-invisibility-spec)
+      (remove-from-invisibility-spec '(epresent-hide-src-block))
+    (add-to-invisibility-spec '(epresent-hide-src-block)))
+  (redraw-display))
+
 (defun epresent-increase-font ()
   "Increase the presentation font size."
   (interactive)
@@ -319,7 +338,11 @@
         (overlay-put
          (car epresent-overlays) 'face (intern (format "epresent-%s-face" el)))))
     ;; inline images
-    (org-display-inline-images)))
+    (org-display-inline-images)
+    ;; source blocks
+    (dolist (overlay (epresent-collect-src-block-overlays))
+      (push (make-overlay (overlay-start overlay) (overlay-end overlay)) epresent-overlays)
+      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide-src-block))))
 
 (defun epresent-refresh ()
   (interactive)
@@ -372,6 +395,7 @@
     ;; global controls
     (define-key map "q" 'epresent-quit)
     (define-key map "1" 'epresent-top)
+    (define-key map "s" 'epresent-toggle-hide-src-blocks)
     (define-key map "t" 'epresent-top)
     map)
   "Local keymap for EPresent display mode.")
@@ -401,6 +425,8 @@
     (org-preview-latex-fragment 16))
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
+  (unless epresent-src-blocks-visible
+    (add-to-invisibility-spec '(epresent-hide-src-block)))
   ;; remove flyspell overlays
   (flyspell-mode-off)
   (epresent-fontify))
