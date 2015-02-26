@@ -84,7 +84,7 @@
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
 (defvar epresent-pretty-entities nil)
-(defvar epresent-format-latex-scale nil)
+(defvar epresent-format-latex-scale 4)
 (defvar epresent-hide-todos t)
 (defvar epresent-hide-tags t)
 (defvar epresent-hide-properties t)
@@ -203,7 +203,6 @@
                           'selective-display epresent-outline-ellipsis)
   (setq org-pretty-entities epresent-pretty-entities)
   (remove-hook 'org-babel-after-execute-hook 'epresent-refresh)
-  (plist-put org-format-latex-options :scale epresent-format-latex-scale)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
   (when epresent--org-file
@@ -394,10 +393,10 @@
   (setq epresent-pretty-entities org-pretty-entities)
   (setq org-hide-pretty-entities t)
   (setq mode-line-format epresent-mode-line)
-  (setq epresent-format-latex-scale (plist-get org-format-latex-options :scale))
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
-         (plist-put org-format-latex-options :scale 4.0)))
+         (plist-put (copy-tree org-format-latex-options)
+		    :scale epresent-format-latex-scale)))
     (org-preview-latex-fragment 16))
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
