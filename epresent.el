@@ -261,7 +261,7 @@
         (push (make-overlay (match-beginning 0) (1- (match-end 0)))
               epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))
-       (t (push (make-overlay (match-beginning 0) (1- (match-end 0)))
+       (t (push (make-overlay (match-beginning 0) (match-end 0))
                 epresent-overlays)
           (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     ;; page title faces
