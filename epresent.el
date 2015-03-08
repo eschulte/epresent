@@ -146,7 +146,9 @@
         (hide-body)
         (when (>= (org-reduced-level (org-current-level))
                   epresent-frame-level)
-          (org-show-subtree)))
+          (org-show-subtree)
+          (unless epresent-src-blocks-visible
+            (epresent-toggle-hide-src-blocks))))
     ;; before first headline -- fold up subtrees as TOC
     (org-cycle '(4))))
 
@@ -221,23 +223,6 @@
   (hack-local-variables)
   ;; delete all epresent overlays
   (epresent-clean-overlays))
-
-(defun epresent-collect-src-block-overlays ()
-  (save-excursion
-    (goto-char (point-min))
-    (cl-loop
-     while
-      (condition-case err (progn (org-babel-next-src-block) t) (error nil))
-     collect
-      (car (overlays-at (next-overlay-change (next-overlay-change (point))))))))
-
-(defun epresent-toggle-hide-src-blocks ()
-  "Toggle visibility of source blocks."
-  (interactive)
-  (if (member '(epresent-hide-src-block) buffer-invisibility-spec)
-      (remove-from-invisibility-spec '(epresent-hide-src-block))
-    (add-to-invisibility-spec '(epresent-hide-src-block)))
-  (redraw-display))
 
 (defun epresent-increase-font ()
   "Increase the presentation font size."
@@ -338,11 +323,7 @@
         (overlay-put
          (car epresent-overlays) 'face (intern (format "epresent-%s-face" el)))))
     ;; inline images
-    (org-display-inline-images)
-    ;; source blocks
-    (dolist (overlay (epresent-collect-src-block-overlays))
-      (push (make-overlay (overlay-start overlay) (overlay-end overlay)) epresent-overlays)
-      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide-src-block))))
+    (org-display-inline-images)))
 
 (defun epresent-refresh ()
   (interactive)
@@ -367,6 +348,45 @@
   (interactive "P")
   (org-babel-previous-src-block arg)
   (epresent-flash-cursor))
+
+(defun epresent-toggle-hide-src-blocks (&optional arg)
+  (interactive "P")
+  (cl-labels
+      ((boundaries ()
+         (let ((head (org-babel-where-is-src-block-head)))
+           (if head
+               (save-excursion
+                 (goto-char head)
+                 (looking-at org-babel-src-block-regexp)
+                 (list (match-beginning 5) (match-end 5)))
+             (error "no source block to hide at %d" (point)))))
+       (toggle ()
+         (cl-destructuring-bind (beg end) (boundaries)
+           (let ((ovs (cl-remove-if-not
+                       (lambda (ov) (overlay-get ov 'epresent-hidden-src-block))
+                       (overlays-at beg))))
+             (if ovs
+                 (progn
+                   (mapc #'delete-overlay ovs)
+                   (setq epresent-overlays
+                         (cl-set-difference epresent-overlays ovs)))
+               (progn
+                 (push (make-overlay beg end) epresent-overlays)
+                 (overlay-put (car epresent-overlays)
+                              'epresent-hidden-src-block t)
+                 (overlay-put (car epresent-overlays)
+                              'invisible 'epresent-hide)))))))
+    (if arg (toggle)               ; only toggle the current src block
+      (save-excursion              ; toggle all source blocks
+        (goto-char (point-min))
+        (while (re-search-forward org-babel-src-block-regexp nil t)
+          (goto-char (1- (match-end 5)))
+          (toggle))))
+    (redraw-display)))
+
+(defun epresent-toggle-hide-src-block (&optional arg)
+  (interactive "P")
+  (epresent-toggle-hide-src-blocks t))
 
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
@@ -396,6 +416,7 @@
     (define-key map "q" 'epresent-quit)
     (define-key map "1" 'epresent-top)
     (define-key map "s" 'epresent-toggle-hide-src-blocks)
+    (define-key map "S" 'epresent-toggle-hide-src-block)
     (define-key map "t" 'epresent-top)
     map)
   "Local keymap for EPresent display mode.")
@@ -425,8 +446,6 @@
     (org-preview-latex-fragment 16))
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
-  (unless epresent-src-blocks-visible
-    (add-to-invisibility-spec '(epresent-hide-src-block)))
   ;; remove flyspell overlays
   (flyspell-mode-off)
   (epresent-fontify))
