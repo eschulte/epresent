@@ -316,7 +316,7 @@
           (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     (dolist (el '("title" "author" "date"))
       (goto-char (point-min))
-      (when (re-search-forward (format "^\\(#\\+%s:\\)[ \t]*\\(.*\\)$" el) nil t)
+      (when (re-search-forward (format "^\\(#\\+%s:[ \t]*\\)[ \t]*\\(.*\\)$" el) nil t)
         (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
         (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
