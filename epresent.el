@@ -97,6 +97,9 @@
 
 (defvar epresent-src-blocks-visible t)
 
+(defvar epresent-start-presentation-hook nil)
+(defvar epresent-stop-presentation-hook nil)
+
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
     (setq epresent--frame (make-frame '((minibuffer . nil)
@@ -195,6 +198,7 @@
 (defun epresent-quit ()
   "Quit the current presentation."
   (interactive)
+  (run-hooks 'epresent-stop-presentation-hook)
   ;; restore the font size
   (text-scale-adjust (/ 1 epresent-text-scale))
   (org-remove-latex-fragment-image-overlays)
@@ -470,7 +474,8 @@
   (setq epresent-frame-level (epresent-get-frame-level))
   (epresent--get-frame)
   (epresent-mode)
-  (set-buffer-modified-p nil))
+  (set-buffer-modified-p nil)
+  (run-hooks 'epresent-start-presentation-hook))
 
 (define-key org-mode-map [f12] 'epresent-run)
 
