@@ -446,7 +446,7 @@
   (let ((org-format-latex-options
          (plist-put (copy-tree org-format-latex-options)
 		    :scale epresent-format-latex-scale)))
-    (org-preview-latex-fragment 16))
+    (org-preview-latex-fragment '(16)))
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
   ;; remove flyspell overlays
