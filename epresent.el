@@ -95,7 +95,9 @@
 (defvar epresent-mode-line nil
   "Set the mode-line format. Hides it when nil")
 
-(defvar epresent-src-blocks-visible t)
+(defvar epresent-src-blocks-visible t
+  "If non-nil source blocks are initially visible on slide change.
+If nil then source blocks are initially hidden on slide change.")
 
 (defvar epresent-start-presentation-hook nil)
 (defvar epresent-stop-presentation-hook nil)
