@@ -100,6 +100,8 @@
 (defvar epresent-start-presentation-hook nil)
 (defvar epresent-stop-presentation-hook nil)
 
+(defvar epresent-src-block-toggle-state nil)
+
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
     (setq epresent--frame (make-frame '((minibuffer . nil)
@@ -150,7 +152,8 @@
         (when (>= (org-reduced-level (org-current-level))
                   epresent-frame-level)
           (org-show-subtree)
-          (unless epresent-src-blocks-visible
+          (let ((epresent-src-block-toggle-state
+                 (if epresent-src-blocks-visible :show :hide)))
             (epresent-toggle-hide-src-blocks))))
     ;; before first headline -- fold up subtrees as TOC
     (org-cycle '(4))))
@@ -356,29 +359,33 @@
   (interactive "P")
   (cl-labels
       ((boundaries ()
-         (let ((head (org-babel-where-is-src-block-head)))
-           (if head
-               (save-excursion
-                 (goto-char head)
-                 (looking-at org-babel-src-block-regexp)
-                 (list (match-beginning 5) (match-end 5)))
-             (error "no source block to hide at %d" (point)))))
+                   (let ((head (org-babel-where-is-src-block-head)))
+                     (if head
+                         (save-excursion
+                           (goto-char head)
+                           (looking-at org-babel-src-block-regexp)
+                           (list (match-beginning 5) (match-end 5)))
+                       (error "no source block to hide at %d" (point)))))
        (toggle ()
          (cl-destructuring-bind (beg end) (boundaries)
            (let ((ovs (cl-remove-if-not
                        (lambda (ov) (overlay-get ov 'epresent-hidden-src-block))
                        (overlays-at beg))))
              (if ovs
+                 (unless (and epresent-src-block-toggle-state
+                              (eq epresent-src-block-toggle-state :hide))
+                   (progn
+                     (mapc #'delete-overlay ovs)
+                     (setq epresent-overlays
+                           (cl-set-difference epresent-overlays ovs))))
+               (unless (and epresent-src-block-toggle-state
+                            (eq epresent-src-block-toggle-state :show))
                  (progn
-                   (mapc #'delete-overlay ovs)
-                   (setq epresent-overlays
-                         (cl-set-difference epresent-overlays ovs)))
-               (progn
-                 (push (make-overlay beg end) epresent-overlays)
-                 (overlay-put (car epresent-overlays)
-                              'epresent-hidden-src-block t)
-                 (overlay-put (car epresent-overlays)
-                              'invisible 'epresent-hide)))))))
+                   (push (make-overlay beg end) epresent-overlays)
+                   (overlay-put (car epresent-overlays)
+                                'epresent-hidden-src-block t)
+                   (overlay-put (car epresent-overlays)
+                                'invisible 'epresent-hide))))))))
     (if arg (toggle)               ; only toggle the current src block
       (save-excursion              ; toggle all source blocks
         (goto-char (point-min))
