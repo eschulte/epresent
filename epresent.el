@@ -421,6 +421,7 @@ If nil then source blocks are initially hidden on slide change.")
     (define-key map "c" 'epresent-next-src-block)
     (define-key map "C" 'epresent-previous-src-block)
     (define-key map "e" 'org-edit-src-code)
+    (define-key map [f5] 'epresent-edit-text) ; Another [f5] exits edit mode.
     (define-key map "x" 'org-babel-execute-src-block)
     (define-key map "r" 'epresent-refresh)
     (define-key map "g" 'epresent-refresh)
@@ -461,6 +462,24 @@ If nil then source blocks are initially hidden on slide change.")
   ;; remove flyspell overlays
   (flyspell-mode-off)
   (epresent-fontify))
+
+(defvar epresent-edit-map (let ((map (copy-keymap org-mode-map)))
+                            (define-key map [f5] 'epresent-refresh)
+                            map)
+  "Local keymap for editing EPresent presentations.")
+
+(defun epresent-edit-text (&optional arg)
+  "Write in EPresent presentation."
+  (interactive "p")
+  (lexical-let ((prior-cursor-type (alist-get 'cursor-type (frame-parameters))))
+    (set-frame-parameter nil 'cursor-type t)
+    (use-local-map epresent-edit-map)
+    (set-transient-map
+     epresent-edit-map
+     (lambda () (not (equal [f5] (this-command-keys))))
+     (lambda ()
+       (use-local-map epresent-mode-map)
+       (set-frame-parameter nil 'cursor-type prior-cursor-type)))))
 
 ;;;###autoload
 (defun epresent-run ()
