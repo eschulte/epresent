@@ -471,7 +471,8 @@ If nil then source blocks are initially hidden on slide change.")
 (defun epresent-edit-text (&optional arg)
   "Write in EPresent presentation."
   (interactive "p")
-  (lexical-let ((prior-cursor-type (alist-get 'cursor-type (frame-parameters))))
+  (lexical-let
+      ((prior-cursor-type (cdr (assoc 'cursor-type (frame-parameters)))))
     (set-frame-parameter nil 'cursor-type t)
     (use-local-map epresent-edit-map)
     (set-transient-map
