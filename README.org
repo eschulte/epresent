@@ -1,5 +1,7 @@
 #+TITLE: epresent.el
 
+[[https://melpa.org/#/epresent][file:https://melpa.org/packages/epresent-badge.svg]]
+
 /Simple presentation mode for Emacs Org-mode/
 
 * Install
