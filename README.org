@@ -1,0 +1,15 @@
+#+TITLE: epresent.el
+
+/Simple presentation mode for Emacs Org-mode/
+
+* Install
+
+Just install =epresent= from melpa repositery.
+
+* Usage
+
+- Call =epresent-run= on an org-buffer.
+- press press =t= to view the top level of the presentation
+- navigate the presentation with =n=, =p=, =t=
+- use =c= and =C= to navigate between code blocks
+- quit with =q=

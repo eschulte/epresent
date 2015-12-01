@@ -1,7 +1,0 @@
-epresent.el --- Simple presentation mode for Emacs Org-mode
-
-  1) load-file epresent.el
-  2) open present.org
-  3) call `epresent-run'
-  4) press "t" to view the top level of the presentation
-  5) navigate the presentation with "n", "p", "t" and quit with "q"
