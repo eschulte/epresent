@@ -44,24 +44,32 @@
 (require 'ox-latex)
 (require 'cl-lib)
 
+(defgroup epresent () "This is a simple presentation mode for Emacs.")
+
 (defface epresent-title-face
   '((t :weight bold :height 360 :underline t :inherit variable-pitch))
-  "")
+  "Face used for the title of the document during the presentation."
+  :group 'epresent)
 (defface epresent-heading-face
   '((t :weight bold :height 270 :underline t :inherit variable-pitch))
-  "")
+  "Face used for the top-level headings in the outline during the presentation."
+  :group 'epresent)
 (defface epresent-subheading-face
   '((t :weight bold :height 240 :inherit variable-pitch))
-  "")
+  "Face used for any non-top-level headings in the outline during the presentation."
+  :group 'epresent)
 (defface epresent-author-face
   '((t :height 1.6 :inherit variable-pitch))
-  "")
+  "Face used for the author of the document during the presentation."
+  :group 'epresent)
 (defface epresent-bullet-face
   '((t :weight bold :height 1.4 :underline nil :inherit variable-pitch))
-  "")
+  "Face used for bullets during the presentation."
+  :group 'epresent)
 (defface epresent-hidden-face
   '((t :invisible t))
-  "")
+  "Face used for hidden elements during the presentation."
+  :group 'epresent)
 
 (defvar epresent--frame nil
   "Frame for EPresent.")
@@ -75,7 +83,10 @@
 (defvar epresent--org-file nil
   "Temporary Org-mode file used when a narrowed region.")
 
-(defvar epresent-text-scale 3)
+(defcustom epresent-text-scale 3
+  "Multiplier for the text size when presenting."
+  :type 'number
+  :group 'epresent)
 
 (defvar epresent-overlays nil)
 
@@ -84,23 +95,48 @@
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
 (defvar epresent-pretty-entities nil)
-(defvar epresent-format-latex-scale 4)
-(defvar epresent-hide-todos t)
-(defvar epresent-hide-tags t)
-(defvar epresent-hide-properties t)
 
-(defvar epresent-frame-level 1)
+(defcustom epresent-format-latex-scale 4
+  "A scaling factor for the size of the images generated from LaTeX."
+  :type 'number
+  :group 'epresent)
+(defcustom epresent-hide-todos t
+  "Whether or not to hide TODOs during the presentation."
+  :type 'boolean
+  :group 'epresent)
+(defcustom epresent-hide-tags t
+  "Whether or not to hide tags during the presentation."
+  :type 'boolean
+  :group 'epresent)
+(defcustom epresent-hide-properties t
+  "Whether or not to hide properties during the presentation."
+  :type 'boolean
+  :group 'epresent)
+
+(defcustom epresent-frame-level 1
+  "Determines the least-significant heading level that should get its own page."
+  :type 'integer
+  :group 'epresent)
 (make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
 
-(defvar epresent-mode-line nil
-  "Set the mode-line format. Hides it when nil")
+(defcustom epresent-mode-line nil
+  "Set the mode-line format. Hides it when nil"
+  :group 'epresent)
 
-(defvar epresent-src-blocks-visible t
+(defcustom epresent-src-blocks-visible t
   "If non-nil source blocks are initially visible on slide change.
-If nil then source blocks are initially hidden on slide change.")
+If nil then source blocks are initially hidden on slide change."
+  :type 'boolean
+  :group 'epresent)
 
-(defvar epresent-start-presentation-hook nil)
-(defvar epresent-stop-presentation-hook nil)
+(defcustom epresent-start-presentation-hook nil
+  "Hook run after starting a presentation."
+  :type 'hook
+  :group 'epresent)
+(defcustom epresent-stop-presentation-hook nil
+  "Hook run before stopping a presentation."
+  :type 'hook
+  :group 'epresent)
 
 (defvar epresent-src-block-toggle-state nil)
 
