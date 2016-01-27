@@ -274,7 +274,7 @@ If nil then source blocks are initially hidden on slide change.")
           (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     ;; page title faces
     (goto-char (point-min))
-    (while (re-search-forward "^\\(*+\\)\\([ \t]*\\)\\(.*\\)$" nil t)
+    (while (re-search-forward "^\\(*+\\)\\([ \t]+\\)\\(.*\\)$" nil t)
       (push (make-overlay (match-beginning 1) (or (match-end 2)
                                                   (match-end 1)))
             epresent-overlays)
