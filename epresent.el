@@ -113,10 +113,7 @@
   :type 'boolean
   :group 'epresent)
 
-(defcustom epresent-frame-level 1
-  "Determines the least-significant heading level that should get its own page."
-  :type 'integer
-  :group 'epresent)
+(defvar epresent-frame-level 1)
 (make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
 
 (defcustom epresent-mode-line nil
