@@ -134,6 +134,18 @@ If nil then source blocks are initially hidden on slide change.")
           (string-to-number (match-string 1))
         1))))
 
+(defun epresent-get-mode-line ()
+  "Get the presentation-specific mode-line."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (if (re-search-forward
+           "^#\\+EPRESENT_MODE_LINE:[ \t]*\\(.*?\\)[ \t]*$" nil t)
+          (car (read-from-string (match-string 1)))
+        epresent-mode-line))))
+
 (defun epresent-goto-top-level ()
   "Go to the current top level heading containing point."
   (interactive)
@@ -451,7 +463,7 @@ If nil then source blocks are initially hidden on slide change.")
   (set-display-table-slot standard-display-table 'selective-display [32])
   (setq epresent-pretty-entities org-pretty-entities)
   (setq org-hide-pretty-entities t)
-  (setq mode-line-format epresent-mode-line)
+  (setq mode-line-format (epresent-get-mode-line))
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
          (plist-put (copy-tree org-format-latex-options)
