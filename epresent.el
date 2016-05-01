@@ -44,24 +44,37 @@
 (require 'ox-latex)
 (require 'cl-lib)
 
+(defgroup epresent () "This is a simple presentation mode for Emacs.")
+
 (defface epresent-title-face
   '((t :weight bold :height 360 :underline t :inherit variable-pitch))
-  "")
+  "Face used for the title of the document during the presentation."
+  :group 'epresent)
+
 (defface epresent-heading-face
   '((t :weight bold :height 270 :underline t :inherit variable-pitch))
-  "")
+  "Face used for the top-level headings in the outline during the presentation."
+  :group 'epresent)
+
 (defface epresent-subheading-face
   '((t :weight bold :height 240 :inherit variable-pitch))
-  "")
+  "Face used for any non-top-level headings in the outline during the presentation."
+  :group 'epresent)
+
 (defface epresent-author-face
   '((t :height 1.6 :inherit variable-pitch))
-  "")
+  "Face used for the author of the document during the presentation."
+  :group 'epresent)
+
 (defface epresent-bullet-face
   '((t :weight bold :height 1.4 :underline nil :inherit variable-pitch))
-  "")
+  "Face used for bullets during the presentation."
+  :group 'epresent)
+
 (defface epresent-hidden-face
   '((t :invisible t))
-  "")
+  "Face used for hidden elements during the presentation."
+  :group 'epresent)
 
 (defvar epresent--frame nil
   "Frame for EPresent.")
@@ -78,7 +91,10 @@
 (defvar epresent--possibly-modified nil
   "Set to non-nil when the `epresent--org-file' might be modified.")
 
-(defvar epresent-text-size 500)
+(defcustom epresent-text-size 500
+  "Text size when presenting"
+  :type 'number
+  :group 'epresent)
 
 (defvar epresent-overlays nil)
 
@@ -87,24 +103,47 @@
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
 (defvar epresent-pretty-entities nil)
-(defvar epresent-format-latex-scale 4)
-(defvar epresent-hide-todos t)
-(defvar epresent-hide-tags t)
-(defvar epresent-hide-properties t)
+
+(defcustom epresent-format-latex-scale 4
+  "A scaling factor for the size of the images generated from LaTeX."
+  :type 'number
+  :group 'epresent)
+(defcustom epresent-hide-todos t
+  "Whether or not to hide TODOs during the presentation."
+  :type 'boolean
+  :group 'epresent)
+(defcustom epresent-hide-tags t
+  "Whether or not to hide tags during the presentation."
+  :type 'boolean
+  :group 'epresent)
+(defcustom epresent-hide-properties t
+  "Whether or not to hide properties during the presentation."
+  :type 'boolean
+  :group 'epresent)
+
 (defvar epresent-page-number 0)
 
 (defvar epresent-frame-level 1)
 (make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
 
-(defvar epresent-mode-line '(:eval (int-to-string epresent-page-number))
-  "Set the mode-line format. Hides it when nil")
+(defcustom epresent-mode-line '(:eval (int-to-string epresent-page-number))
+  "Set the mode-line format. Hides it when nil"
+  :group 'epresent)
 
-(defvar epresent-src-blocks-visible t
+(defcustom epresent-src-blocks-visible t
   "If non-nil source blocks are initially visible on slide change.
-If nil then source blocks are initially hidden on slide change.")
+If nil then source blocks are initially hidden on slide change."
+  :type 'boolean
+  :group 'epresent)
 
-(defvar epresent-start-presentation-hook nil)
-(defvar epresent-stop-presentation-hook nil)
+(defcustom epresent-start-presentation-hook nil
+  "Hook run after starting a presentation."
+  :type 'hook
+  :group 'epresent)
+(defcustom epresent-stop-presentation-hook nil
+  "Hook run before stopping a presentation."
+  :type 'hook
+  :group 'epresent)
 
 (defvar epresent-src-block-toggle-state nil)
 
@@ -516,26 +555,25 @@ If nil then source blocks are initially hidden on slide change.")
 (defun epresent-run ()
   "Present an Org-mode buffer."
   (interactive)
-  (unless (eq major-mode 'epresent-mode)
-    (unless (eq major-mode 'org-mode)
-      (error "EPresent can only be used from Org Mode"))
-    (setq epresent--org-buffer (current-buffer))
-    ;; To present narrowed region use temporary buffer
-    (when (and (or (> (point-min) (save-restriction (widen) (point-min)))
-                   (< (point-max) (save-restriction (widen) (point-max))))
-               (save-excursion (goto-char (point-min)) (org-at-heading-p)))
-      (let ((title (nth 4 (org-heading-components))))
-        (setq epresent--org-restriction (list (point-min) (point-max)))
-        (require 'ox-org)
-        (setq epresent--org-file (org-org-export-to-org nil 'subtree))
-        (find-file epresent--org-file)
-        (goto-char (point-min))
-        (insert (format "#+Title: %s\n\n" title))))
-    (setq epresent-frame-level (epresent-get-frame-level))
-    (epresent--get-frame)
-    (epresent-mode)
-    (set-buffer-modified-p nil)
-    (run-hooks 'epresent-start-presentation-hook)))
+  (unless (eq major-mode 'org-mode)
+    (error "EPresent can only be used from Org Mode"))
+  (setq epresent--org-buffer (current-buffer))
+  ;; To present narrowed region use temporary buffer
+  (when (and (or (> (point-min) (save-restriction (widen) (point-min)))
+                 (< (point-max) (save-restriction (widen) (point-max))))
+             (save-excursion (goto-char (point-min)) (org-at-heading-p)))
+    (let ((title (nth 4 (org-heading-components))))
+      (setq epresent--org-restriction (list (point-min) (point-max)))
+      (require 'ox-org)
+      (setq epresent--org-file (org-org-export-to-org nil 'subtree))
+      (find-file epresent--org-file)
+      (goto-char (point-min))
+      (insert (format "#+Title: %s\n\n" title))))
+  (setq epresent-frame-level (epresent-get-frame-level))
+  (epresent--get-frame)
+  (epresent-mode)
+  (set-buffer-modified-p nil)
+  (run-hooks 'epresent-start-presentation-hook))
 
 (define-key org-mode-map [f5]  'epresent-run)
 (define-key org-mode-map [f12] 'epresent-run)
