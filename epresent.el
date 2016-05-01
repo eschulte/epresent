@@ -75,6 +75,9 @@
 (defvar epresent--org-file nil
   "Temporary Org-mode file used when a narrowed region.")
 
+(defvar epresent--possibly-modified nil
+  "Set to non-nil when the `epresent--org-file' might be modified.")
+
 (defvar epresent-text-size 500)
 
 (defvar epresent-overlays nil)
@@ -242,6 +245,10 @@ If nil then source blocks are initially hidden on slide change.")
   (when epresent--org-file
     (kill-buffer (get-file-buffer epresent--org-file))
     (when (file-exists-p epresent--org-file)
+      (when epresent--possibly-modified
+        (let ((temp (make-temp-file "epresent" nil ".org")))
+          (copy-file epresent--org-file temp 'overwrite)
+          (message "Presentation edits saved to %S" temp)))
       (delete-file epresent--org-file)))
   (when epresent--org-buffer
     (set-buffer epresent--org-buffer))
@@ -493,6 +500,7 @@ If nil then source blocks are initially hidden on slide change.")
 (defun epresent-edit-text (&optional arg)
   "Write in EPresent presentation."
   (interactive "p")
+  (when epresent--org-file (setq epresent--possibly-modified t))
   (lexical-let
       ((prior-cursor-type (cdr (assoc 'cursor-type (frame-parameters)))))
     (set-frame-parameter nil 'cursor-type t)
