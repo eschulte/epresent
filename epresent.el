@@ -105,6 +105,7 @@
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
 (defvar epresent-pretty-entities nil)
+(defvar epresent-border-width 20)
 
 (defcustom epresent-format-latex-scale 4
   "A scaling factor for the size of the images generated from LaTeX."
@@ -151,17 +152,17 @@ If nil then source blocks are initially hidden on slide change."
 
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
-    (setq epresent--frame (make-frame '((minibuffer . nil)
-                                        (title . "EPresent")
-                                        (fullscreen . fullboth)
-                                        (menu-bar-lines . 0)
-                                        (tool-bar-lines . 0)
-                                        (vertical-scroll-bars . nil)
-                                        (left-fringe . 0)
-                                        (right-fringe . 0)
-                                        (internal-border-width . 20)
-                                        (cursor-type . nil)
-                                        ))))
+    (setq epresent--frame
+          (make-frame `((minibuffer . nil)
+                        (title . "EPresent")
+                        (fullscreen . fullboth)
+                        (menu-bar-lines . 0)
+                        (tool-bar-lines . 0)
+                        (vertical-scroll-bars . nil)
+                        (left-fringe . 0)
+                        (right-fringe . 0)
+                        (internal-border-width . ,epresent-border-width)
+                        (cursor-type . nil)))))
   (raise-frame epresent--frame)
   (select-frame-set-input-focus epresent--frame)
   epresent--frame)
@@ -468,6 +469,18 @@ If nil then source blocks are initially hidden on slide change."
   (interactive "P")
   (epresent-toggle-hide-src-blocks t))
 
+(defun epresent-increase-inner-border ()
+  (interactive)
+  (modify-frame-parameters
+   epresent--frame
+   `((internal-border-width . ,(incf epresent-border-width 10)))))
+
+(defun epresent-decrease-inner-border ()
+  (interactive)
+  (modify-frame-parameters
+   epresent--frame
+   `((internal-border-width . ,(decf epresent-border-width 10)))))
+
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
@@ -502,6 +515,9 @@ If nil then source blocks are initially hidden on slide change."
     (define-key map "s" 'epresent-toggle-hide-src-blocks)
     (define-key map "S" 'epresent-toggle-hide-src-block)
     (define-key map "t" 'epresent-top)
+    (define-key map "a" 'epresent-increase-inner-border)
+    (define-key map ";" 'epresent-decrease-inner-border)
+
     map)
   "Local keymap for EPresent display mode.")
 
