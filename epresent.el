@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t -*-
 ;;; epresent.el --- Simple presentation mode for Emacs Org-mode
 
 ;; Copyright (C) 2008 Tom Tromey <tromey@redhat.com>
@@ -76,33 +77,10 @@
   "Face used for hidden elements during the presentation."
   :group 'epresent)
 
-(defvar epresent--frame nil
-  "Frame for EPresent.")
-
-(defvar epresent--org-buffer nil
-  "Original Org-mode buffer")
-
-(defvar epresent--org-restriction nil
-  "Original restriction in Org-mode buffer.")
-
-(defvar epresent--org-file nil
-  "Temporary Org-mode file used when a narrowed region.")
-
-(defvar epresent--possibly-modified nil
-  "Set to non-nil when the `epresent--org-file' might be modified.")
-
 (defcustom epresent-text-size 500
   "Text size when presenting"
   :type 'number
   :group 'epresent)
-
-(defvar epresent-overlays nil)
-
-(defvar epresent-inline-image-overlays nil)
-(defvar epresent-src-fontify-natively nil)
-(defvar epresent-hide-emphasis-markers nil)
-(defvar epresent-outline-ellipsis nil)
-(defvar epresent-pretty-entities nil)
 
 (defcustom epresent-format-latex-scale 4
   "A scaling factor for the size of the images generated from LaTeX."
@@ -121,13 +99,12 @@
   :type 'boolean
   :group 'epresent)
 
-(defvar epresent-page-number 0)
-
-(defvar epresent-frame-level 1)
-(make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
-
-(defcustom epresent-mode-line '(:eval (int-to-string epresent-page-number))
-  "Set the mode-line format. Hides it when nil"
+(defcustom epresent-mode-line
+  (lambda (presentation)
+    `(:eval (int-to-string (epresent-page-number ,presentation))))
+  "A function that evaluates to a mode-line format. It must take a single
+parameter, which is the presentation the mode-line is being applied to."
+  :type 'function
   :group 'epresent)
 
 (defcustom epresent-src-blocks-visible t
@@ -145,159 +122,191 @@ If nil then source blocks are initially hidden on slide change."
   :type 'hook
   :group 'epresent)
 
-(defvar epresent-src-block-toggle-state nil)
+(defvar epresent--default-presentation nil
+  "The presentation to use if none is provided.")
 
-(defun epresent--get-frame ()
-  (unless (frame-live-p epresent--frame)
-    (setq epresent--frame (make-frame '((minibuffer . nil)
-                                        (title . "EPresent")
-                                        (fullscreen . fullboth)
-                                        (menu-bar-lines . 0)
-                                        (tool-bar-lines . 0)
-                                        (vertical-scroll-bars . nil)
-                                        (left-fringe . 0)
-                                        (right-fringe . 0)
-                                        (internal-border-width . 20)
-                                        (cursor-type . nil)
-                                        ))))
-  (raise-frame epresent--frame)
-  (select-frame-set-input-focus epresent--frame)
-  epresent--frame)
+(defvar epresent--org-bindings
+  '((org-fontify-quote-and-verse-blocks . t)
+    (org-hide-emphasis-markers          . t)
+    (org-inline-image-overlays          . nil)
+    (org-pretty-entities                . nil)
+    (org-src-fontify-natively           . t))
+  "Mapping of Epresent-specific values for Org variables.")
+
+(defun epresent--get-presentation ()
+  (let ((presentation (or epresent--default-presentation
+                          (setq epresent--default-presentation
+                                (make-instance 'epresent-presentation)))))
+    ;; FIXME: Should set this as initform, but that is getting evaluated at
+    ;;        load-time.
+    (set-slot-value presentation 'frame
+                    (make-frame '((minibuffer . nil)
+                                  (title . "EPresent")
+                                  (fullscreen . fullboth)
+                                  (menu-bar-lines . 0)
+                                  (tool-bar-lines . 0)
+                                  (vertical-scroll-bars . nil)
+                                  (left-fringe . 0)
+                                  (right-fringe . 0)
+                                  (internal-border-width . 20)
+                                  (cursor-type . nil))))
+    (raise-frame (slot-value presentation 'frame))
+    (select-frame-set-input-focus (slot-value presentation 'frame))
+    presentation))
 
 ;; functions
-(defun epresent-get-frame-level ()
+(defun epresent--get-frame-level (presentation)
   "Get the heading level to show as different frames."
   (interactive)
-  (save-excursion
-    (save-restriction
-      (widen)
-      (goto-char (point-min))
-      (if (re-search-forward
-           "^#\\+EPRESENT_FRAME_LEVEL:[ \t]*\\(.*?\\)[ \t]*$" nil t)
-          (string-to-number (match-string 1))
-        1))))
+  (with-current-buffer (slot-value presentation 'org-buffer)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (goto-char (point-min))
+        (if (re-search-forward
+             "^#\\+EPRESENT_FRAME_LEVEL:[ \t]*\\(.*?\\)[ \t]*$" nil t)
+            (string-to-number (match-string 1))
+          1)))))
 
-(defun epresent-get-mode-line ()
+(defun epresent--get-mode-line (presentation)
   "Get the presentation-specific mode-line."
   (interactive)
-  (save-excursion
-    (save-restriction
-      (widen)
-      (goto-char (point-min))
-      (if (re-search-forward
-           "^#\\+EPRESENT_MODE_LINE:[ \t]*\\(.*?\\)[ \t]*$" nil t)
-          (car (read-from-string (match-string 1)))
-        epresent-mode-line))))
+  (with-current-buffer (slot-value presentation 'org-buffer)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (goto-char (point-min))
+        (funcall (if (re-search-forward
+                      "^#\\+EPRESENT_MODE_LINE:[ \t]*\\(.*?\\)[ \t]*$" nil t)
+                     (car (read-from-string (match-string 1)))
+                   epresent-mode-line)
+                 presentation)))))
 
-(defun epresent-goto-top-level ()
+(defun epresent--goto-top-level (presentation)
   "Go to the current top level heading containing point."
   (interactive)
   (unless (org-at-heading-p) (outline-previous-heading))
-  (let ((level (ignore-errors (org-reduced-level (org-current-level)))))
-    (when (and level (> level epresent-frame-level))
-      (org-up-heading-all (- level epresent-frame-level)))))
+  (let ((level (ignore-errors (org-reduced-level (org-current-level))))
+        (frame-level (slot-value presentation 'frame-level)))
+    (when (and level (> level frame-level))
+      (org-up-heading-all (- level frame-level)))))
 
-(defun epresent-jump-to-page (num)
+(cl-defun epresent-jump-to-page
+    (num &optional (presentation epresent--default-presentation))
   "Jump directly to a particular page in the presentation."
   (interactive "npage number: ")
-  (epresent-top)
-  (dotimes (_ (1- num)) (epresent-next-page)))
+  (epresent-top presentation)
+  (dotimes (_ (1- num)) (epresent-next-page presentation)))
 
-(defun epresent-current-page ()
+(defun epresent--current-page (presentation)
   "Present the current outline heading."
   (interactive)
   (if (org-current-level)
       (progn
-        (epresent-goto-top-level)
+        (epresent--goto-top-level presentation)
         (org-narrow-to-subtree)
         (show-all)
         (hide-body)
         (when (>= (org-reduced-level (org-current-level))
-                  epresent-frame-level)
+                  (slot-value presentation 'frame-level))
           (org-show-subtree)
-          (let ((epresent-src-block-toggle-state
-                 (if epresent-src-blocks-visible :show :hide)))
-            (epresent-toggle-hide-src-blocks))))
+          (epresent-toggle-hide-src-blocks nil
+                                           presentation
+                                           (if epresent-src-blocks-visible
+                                               :show
+                                             :hide))))
     ;; before first headline -- fold up subtrees as TOC
     (org-cycle '(4))))
 
-(defun epresent-top ()
+(cl-defun epresent-top (&optional (presentation epresent--default-presentation))
   "Present the first outline heading."
   (interactive)
   (widen)
   (goto-char (point-min))
-  (setq epresent-page-number 1)
-  (epresent-current-page))
+  (set-slot-value presentation 'page-number 1)
+  (epresent--current-page presentation))
 
-(defun epresent-next-page ()
+(cl-defun epresent-next-page
+    (&optional (presentation epresent--default-presentation))
   "Present the next outline heading."
   (interactive)
-  (epresent-goto-top-level)
+  (epresent--goto-top-level presentation)
   (widen)
   (if (< (or (ignore-errors (org-reduced-level (org-current-level))) 0)
-         epresent-frame-level)
+         (slot-value presentation 'frame-level))
       (outline-next-heading)
     (org-get-next-sibling))
-  (incf epresent-page-number)
-  (epresent-current-page))
+  (incf (slot-value presentation 'page-number))
+  (epresent--current-page presentation))
 
-(defun epresent-previous-page ()
+(cl-defun epresent-previous-page
+    (&optional (presentation epresent--default-presentation))
   "Present the previous outline heading."
   (interactive)
-  (epresent-goto-top-level)
+  (epresent--goto-top-level presentation)
   (widen)
   (org-content)
   (if (< (or (ignore-errors (org-reduced-level (org-current-level))) 0)
-         epresent-frame-level)
+         (slot-value presentation 'frame-level))
       (outline-previous-heading)
     (org-get-last-sibling))
-  (when (< 1 epresent-page-number)
-    (decf epresent-page-number))
-  (epresent-current-page))
+  (let ((page-number (slot-value presentation 'page-number)))
+    (when (< 1 page-number)
+      (decf (slot-value presentation 'page-number))))
+  (epresent--current-page presentation))
 
-(defun epresent-clean-overlays (&optional start end)
+(defun epresent--clean-overlays (presentation &optional start end)
   (interactive)
   (let (kept)
-    (dolist (ov epresent-overlays)
+    (dolist (ov (slot-value presentation 'overlays))
       (if (or (and start (overlay-start ov) (<= (overlay-start ov) start))
               (and end   (overlay-end   ov) (>= (overlay-end   ov) end)))
           (push ov kept)
         (delete-overlay ov)))
-    (setq epresent-overlays kept)))
+    (set-slot-value presentation 'overlays kept)))
 
-(defun epresent-quit ()
+(defun epresent--swap-bindings (bindings)
+  (mapcar (lambda (binding)
+            (let ((val (cdr binding)))
+              (prog1 (cons (car binding) (symbol-value (car binding)))
+                (set (car binding) val))))
+          bindings))
+
+(cl-defun epresent-quit
+    (&optional (presentation epresent--default-presentation))
   "Quit the current presentation."
   (interactive)
   (run-hooks 'epresent-stop-presentation-hook)
   (org-remove-latex-fragment-image-overlays)
   ;; restore the user's Org-mode variables
   (remove-hook 'org-src-mode-hook 'epresent-setup-src-edit)
-  (setq org-inline-image-overlays epresent-inline-image-overlays)
-  (setq org-src-fontify-natively epresent-src-fontify-natively)
-  (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
-  (set-display-table-slot standard-display-table
-                          'selective-display epresent-outline-ellipsis)
-  (setq org-pretty-entities epresent-pretty-entities)
+  (epresent--swap-bindings epresent--org-bindings)
+  (set-display-table-slot standard-display-table 'selective-display
+                          (slot-value presentation 'outline-ellipsis))
   (remove-hook 'org-babel-after-execute-hook 'epresent-refresh)
-  (when (string= "EPresent" (frame-parameter nil 'title))
-    (delete-frame (selected-frame)))
-  (when epresent--org-file
-    (kill-buffer (get-file-buffer epresent--org-file))
-    (when (file-exists-p epresent--org-file)
-      (when epresent--possibly-modified
-        (let ((temp (make-temp-file "epresent" nil ".org")))
-          (copy-file epresent--org-file temp 'overwrite)
-          (message "Presentation edits saved to %S" temp)))
-      (delete-file epresent--org-file)))
-  (when epresent--org-buffer
-    (set-buffer epresent--org-buffer))
-  (org-mode)
-  (if epresent--org-restriction
-      (apply #'narrow-to-region epresent--org-restriction)
-    (widen))
+  (delete-frame (slot-value presentation 'frame))
+  (let* ((org-file (slot-value presentation 'org-file))
+         (org-buffer (slot-value presentation 'org-buffer))
+         (org-restriction (slot-value presentation 'org-restriction)))
+    (when org-file
+      (kill-buffer (get-file-buffer org-file))
+      (when (file-exists-p org-file)
+        (when (slot-value presentation 'possibly-modified)
+          (let ((temp (make-temp-file "epresent" nil ".org")))
+            (copy-file org-file temp 'overwrite)
+            (message "Presentation edits saved to %S" temp)))
+        (delete-file org-file)))
+    (when org-buffer
+      (set-buffer org-buffer))
+    (org-mode)
+    (if org-restriction
+        (apply #'narrow-to-region org-restriction)
+      (widen)))
   (hack-local-variables)
   ;; delete all epresent overlays
-  (epresent-clean-overlays))
+  (epresent--clean-overlays presentation)
+  (when (eq presentation epresent--default-presentation)
+    (setq epresent--default-presentation nil)))
 
 (defun epresent-increase-font ()
   "Increase the presentation font size."
@@ -313,97 +322,113 @@ If nil then source blocks are initially hidden on slide change."
            '(epresent-heading-face epresent-content-face epresent-fixed-face))
     (set-face-attribute face nil :height (1- (face-attribute face :height)))))
 
-(defun epresent-fontify ()
+(defun epresent--fontify (presentation)
   "Overlay additional presentation faces to Org-mode."
-  (save-excursion
-    ;; hide all comments
-    (goto-char (point-min))
-    (while (re-search-forward
-            "^[ \t]*#\\(\\+\\(author\\|title\\|date\\):\\)?.*\n"
-            nil t)
-      (cond
-       ((and (match-string 2)
-             (save-match-data
-               (string-match (regexp-opt '("title" "author" "date"))
-                             (match-string 2)))))
-       ((and (match-string 2)
-             (save-match-data
-               (string-match org-babel-results-keyword (match-string 2))))
-        ;; This pulls back the end of the hidden overlay by one to
-        ;; avoid hiding image results of code blocks.  I'm not sure
-        ;; why this is required, or why images start on the preceding
-        ;; newline, but not knowing why doesn't make it less true.
-        (push (make-overlay (match-beginning 0) (1- (match-end 0)))
-              epresent-overlays)
-        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))
-       (t (push (make-overlay (match-beginning 0) (match-end 0))
-                epresent-overlays)
-          (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
-    ;; page title faces
-    (goto-char (point-min))
-    (while (re-search-forward "^\\(*+\\)\\([ \t]+\\)\\(.*\\)$" nil t)
-      (push (make-overlay (match-beginning 1) (or (match-end 2)
-                                                  (match-end 1)))
-            epresent-overlays)
-      (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
-      (push (make-overlay (match-beginning 3) (match-end 3)) epresent-overlays)
-      (if (> (length (match-string 1)) 1)
-          (overlay-put (car epresent-overlays) 'face 'epresent-subheading-face)
-        (overlay-put (car epresent-overlays) 'face 'epresent-heading-face)))
-    ;; fancy bullet points
-    (mapc (lambda (p)
-            (goto-char (point-min))
-            (while (re-search-forward
-                    (format "^%s\\(-\\) " (car p)) nil t)
-              (push (make-overlay (match-beginning 1) (match-end 1))
-                    epresent-overlays)
-              (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
-              (overlay-put (car epresent-overlays)
-                           'before-string
-                           (propertize (cdr p) 'face 'epresent-bullet-face))))
-          '(("[ \t]+" . "∘")
-            ("" . "•")))
-    ;; hide todos
-    (when epresent-hide-todos
-      (goto-char (point-min))
-      (while (re-search-forward org-todo-line-regexp nil t)
-        (when (match-string 2)
-          (push (make-overlay (match-beginning 2) (1+ (match-end 2)))
-                epresent-overlays)
-          (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
-    ;; hide tags
-    (when epresent-hide-tags
+  (let ((overlays (slot-value presentation 'overlays)))
+    (save-excursion
+      ;; hide all comments
       (goto-char (point-min))
       (while (re-search-forward
-              (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]")
+              "^[ \t]*#\\(\\+\\(author\\|title\\|date\\):\\)?.*\n"
               nil t)
-        (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
-        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
-    ;; hide properties
-    (when epresent-hide-properties
+        (cond
+         ((and (match-string 2)
+               (save-match-data
+                 (string-match (regexp-opt '("title" "author" "date"))
+                               (match-string 2)))))
+         ((and (match-string 2)
+               (save-match-data
+                 (string-match org-babel-results-keyword (match-string 2))))
+          ;; This pulls back the end of the hidden overlay by one to
+          ;; avoid hiding image results of code blocks.  I'm not sure
+          ;; why this is required, or why images start on the preceding
+          ;; newline, but not knowing why doesn't make it less true.
+          (push (make-overlay (match-beginning 0) (1- (match-end 0)))
+                (slot-value presentation 'overlays))
+          (overlay-put (car (slot-value presentation 'overlays))
+                       'invisible 'epresent-hide))
+         (t (push (make-overlay (match-beginning 0) (match-end 0))
+                  (slot-value presentation 'overlays))
+            (overlay-put (car (slot-value presentation 'overlays))
+                         'invisible 'epresent-hide))))
+      ;; page title faces
       (goto-char (point-min))
-      (while (re-search-forward org-drawer-regexp nil t)
-        (let ((beg (match-beginning 0))
-              (end (re-search-forward
-                    "^[ \t]*:END:[ \r\n]*"
-                    (save-excursion (outline-next-heading) (point)) t)))
-          (push (make-overlay beg end) epresent-overlays)
-          (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
-    (dolist (el '("title" "author" "date"))
-      (goto-char (point-min))
-      (when (re-search-forward (format "^\\(#\\+%s:[ \t]*\\)[ \t]*\\(.*\\)$" el) nil t)
-        (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
-        (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
-        (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
-        (overlay-put
-         (car epresent-overlays) 'face (intern (format "epresent-%s-face" el)))))
-    ;; inline images
-    (org-display-inline-images)))
+      (while (re-search-forward "^\\(*+\\)\\([ \t]+\\)\\(.*\\)$" nil t)
+        (push (make-overlay (match-beginning 1) (or (match-end 2)
+                                                    (match-end 1)))
+              (slot-value presentation 'overlays))
+        (overlay-put (car (slot-value presentation 'overlays))
+                     'invisible 'epresent-hide)
+        (push (make-overlay (match-beginning 3) (match-end 3))
+              (slot-value presentation 'overlays))
+        (if (> (length (match-string 1)) 1)
+            (overlay-put (car (slot-value presentation 'overlays))
+                         'face 'epresent-subheading-face)
+          (overlay-put (car (slot-value presentation 'overlays))
+                       'face 'epresent-heading-face)))
+      ;; fancy bullet points
+      (mapc (lambda (p)
+              (goto-char (point-min))
+              (while (re-search-forward
+                      (format "^%s\\(-\\) " (car p)) nil t)
+                (push (make-overlay (match-beginning 1) (match-end 1))
+                      (slot-value presentation 'overlays))
+                (overlay-put (car (slot-value presentation 'overlays))
+                             'invisible 'epresent-hide)
+                (overlay-put (car (slot-value presentation 'overlays))
+                             'before-string
+                             (propertize (cdr p) 'face 'epresent-bullet-face))))
+            '(("[ \t]+" . "∘")
+              ("" . "•")))
+      ;; hide todos
+      (when epresent-hide-todos
+        (goto-char (point-min))
+        (while (re-search-forward org-todo-line-regexp nil t)
+          (when (match-string 2)
+            (push (make-overlay (match-beginning 2) (1+ (match-end 2)))
+                  (slot-value presentation 'overlays))
+            (overlay-put (car (slot-value presentation 'overlays))
+                         'invisible 'epresent-hide))))
+      ;; hide tags
+      (when epresent-hide-tags
+        (goto-char (point-min))
+        (while (re-search-forward
+                (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]")
+                nil t)
+          (push (make-overlay (match-beginning 1) (match-end 1))
+                (slot-value presentation 'overlays))
+          (overlay-put (car (slot-value presentation 'overlays))
+                       'invisible 'epresent-hide)))
+      ;; hide properties
+      (when epresent-hide-properties
+        (goto-char (point-min))
+        (while (re-search-forward org-drawer-regexp nil t)
+          (let ((beg (match-beginning 0))
+                (end (re-search-forward
+                      "^[ \t]*:END:[ \r\n]*"
+                      (save-excursion (outline-next-heading) (point)) t)))
+            (push (make-overlay beg end) (slot-value presentation 'overlays))
+            (overlay-put (car (slot-value presentation 'overlays))
+                         'invisible 'epresent-hide))))
+      (dolist (el '("title" "author" "date"))
+        (goto-char (point-min))
+        (when (re-search-forward (format "^\\(#\\+%s:[ \t]*\\)[ \t]*\\(.*\\)$" el) nil t)
+          (push (make-overlay (match-beginning 1) (match-end 1))
+                (slot-value presentation 'overlays))
+          (overlay-put (car (slot-value presentation 'overlays))
+                       'invisible 'epresent-hide)
+          (push (make-overlay (match-beginning 2) (match-end 2))
+                (slot-value presentation 'overlays))
+          (overlay-put (car (slot-value presentation 'overlays))
+                       'face (intern (format "epresent-%s-face" el)))))
+      ;; inline images
+      (org-display-inline-images))))
 
-(defun epresent-refresh ()
+(cl-defun epresent-refresh
+    (&optional (presentation epresent--default-presentation))
   (interactive)
-  (epresent-clean-overlays (point-min) (point-max))
-  (epresent-fontify))
+  (epresent--clean-overlays presentation (point-min) (point-max))
+  (epresent--fontify presentation))
 
 (defun epresent-setup-src-edit ()
   (setq cursor-type 'box))
@@ -423,7 +448,10 @@ If nil then source blocks are initially hidden on slide change."
   (org-babel-previous-src-block arg)
   (epresent-flash-cursor))
 
-(defun epresent-toggle-hide-src-blocks (&optional arg)
+(defun epresent-toggle-hide-src-blocks
+    (&optional arg
+               (presentation epresent--default-presentation)
+               src-block-toggle-state)
   (interactive "P")
   (cl-labels
       ((boundaries ()
@@ -440,19 +468,19 @@ If nil then source blocks are initially hidden on slide change."
                        (lambda (ov) (overlay-get ov 'epresent-hidden-src-block))
                        (overlays-at beg))))
              (if ovs
-                 (unless (and epresent-src-block-toggle-state
-                              (eq epresent-src-block-toggle-state :hide))
+                 (unless (eq src-block-toggle-state :hide)
                    (progn
                      (mapc #'delete-overlay ovs)
-                     (setq epresent-overlays
-                           (cl-set-difference epresent-overlays ovs))))
-               (unless (and epresent-src-block-toggle-state
-                            (eq epresent-src-block-toggle-state :show))
+                     (set-slot-value presentation 'overlays
+                                     (cl-set-difference
+                                      (slot-value presentation 'overlays)
+                                      ovs))))
+               (unless (eq src-block-toggle-state :show)
                  (progn
-                   (push (make-overlay beg end) epresent-overlays)
-                   (overlay-put (car epresent-overlays)
+                   (push (make-overlay beg end) (slot-value presentation 'overlays))
+                   (overlay-put (car (slot-value presentation 'overlays))
                                 'epresent-hidden-src-block t)
-                   (overlay-put (car epresent-overlays)
+                   (overlay-put (car (slot-value presentation 'overlays))
                                 'invisible 'epresent-hide))))))))
     (if arg (toggle)               ; only toggle the current src block
       (save-excursion              ; toggle all source blocks
@@ -462,9 +490,10 @@ If nil then source blocks are initially hidden on slide change."
           (toggle))))
     (redraw-display)))
 
-(defun epresent-toggle-hide-src-block (&optional arg)
+(defun epresent-toggle-hide-src-block
+    (&optional arg (presentation epresent--default-presentation))
   (interactive "P")
-  (epresent-toggle-hide-src-blocks t))
+  (epresent-toggle-hide-src-blocks t presentation))
 
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
@@ -503,53 +532,67 @@ If nil then source blocks are initially hidden on slide change."
     map)
   "Local keymap for EPresent display mode.")
 
+(defclass epresent-presentation ()
+  ((page-number :initform 1 :reader epresent-page-number :type integer)
+   (frame)
+   (frame-level :initform 1 :type integer)
+   (org-buffer :initform nil :documentation "Original Org-mode buffer")
+   (org-restriction :initform nil
+                    :documentation "Original restriction in Org-mode buffer.")
+   (org-file :initform nil
+             :documentation "Temporary Org-mode file used when a narrowed region.")
+   (possibly-modified :initform nil
+                      :documentation "Set to non-nil when ORG-FILE might be modified.")
+   (overlays :initform nil)
+   (outline-ellipsis :initform nil))
+  :documentation "An EPresent presentation.")
+
 (define-derived-mode epresent-mode org-mode "EPresent"
   "Lalala."
   ;; make Org-mode be as pretty as possible
   (add-hook 'org-src-mode-hook 'epresent-setup-src-edit)
-  (setq epresent-inline-image-overlays org-inline-image-overlays)
-  (setq epresent-src-fontify-natively org-src-fontify-natively)
-  (setq org-src-fontify-natively t)
-  (setq org-fontify-quote-and-verse-blocks t)
-  (setq epresent-hide-emphasis-markers org-hide-emphasis-markers)
-  (setq org-hide-emphasis-markers t)
-  (setq epresent-outline-ellipsis
-        (display-table-slot standard-display-table 'selective-display))
+  (epresent--swap-bindings epresent--org-bindings)
+  (set-slot-value epresent--default-presentation 'outline-ellipsis
+                  (display-table-slot standard-display-table
+                                      'selective-display))
   (set-display-table-slot standard-display-table 'selective-display [32])
-  (setq epresent-pretty-entities org-pretty-entities)
-  (setq org-hide-pretty-entities t)
-  (setq mode-line-format (epresent-get-mode-line))
+  (setq mode-line-format
+        (epresent--get-mode-line epresent--default-presentation))
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
          (plist-put (copy-tree org-format-latex-options)
 		    :scale epresent-format-latex-scale)))
     (org-preview-latex-fragment '(16)))
-  (set-face-attribute 'default epresent--frame :height epresent-text-size)
+  (set-face-attribute 'default
+                      (slot-value epresent--default-presentation 'frame)
+                      :height epresent-text-size)
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
   ;; remove flyspell overlays
   (flyspell-mode-off)
-  (epresent-fontify))
+  (epresent--fontify epresent--default-presentation))
 
 (defvar epresent-edit-map (let ((map (copy-keymap org-mode-map)))
                             (define-key map [f5] 'epresent-refresh)
                             map)
   "Local keymap for editing EPresent presentations.")
 
-(defun epresent-edit-text (&optional arg)
+(cl-defun epresent-edit-text
+    (&optional arg (presentation epresent--default-presentation))
   "Write in EPresent presentation."
   (interactive "p")
-  (when epresent--org-file (setq epresent--possibly-modified t))
-  (lexical-let
-      ((prior-cursor-type (cdr (assoc 'cursor-type (frame-parameters)))))
-    (set-frame-parameter nil 'cursor-type t)
+  (when (slot-value presentation 'org-file)
+    (set-slot-value presentation 'possibly-modified t))
+  (let* ((frame (slot-value presentation 'frame))
+         (prior-cursor-type (frame-parameter frame 'cursor-type)))
+    (set-frame-parameter frame 'cursor-type t)
     (use-local-map epresent-edit-map)
     (set-transient-map
      epresent-edit-map
      (lambda () (not (equal [f5] (this-command-keys))))
      (lambda ()
        (use-local-map epresent-mode-map)
-       (set-frame-parameter nil 'cursor-type prior-cursor-type)))))
+       (set-frame-parameter frame 'cursor-type prior-cursor-type)))))
 
 ;;;###autoload
 (defun epresent-run ()
@@ -557,20 +600,22 @@ If nil then source blocks are initially hidden on slide change."
   (interactive)
   (unless (eq major-mode 'org-mode)
     (error "EPresent can only be used from Org Mode"))
-  (setq epresent--org-buffer (current-buffer))
-  ;; To present narrowed region use temporary buffer
-  (when (and (or (> (point-min) (save-restriction (widen) (point-min)))
-                 (< (point-max) (save-restriction (widen) (point-max))))
-             (save-excursion (goto-char (point-min)) (org-at-heading-p)))
-    (let ((title (nth 4 (org-heading-components))))
-      (setq epresent--org-restriction (list (point-min) (point-max)))
-      (require 'ox-org)
-      (setq epresent--org-file (org-org-export-to-org nil 'subtree))
-      (find-file epresent--org-file)
-      (goto-char (point-min))
-      (insert (format "#+Title: %s\n\n" title))))
-  (setq epresent-frame-level (epresent-get-frame-level))
-  (epresent--get-frame)
+  (let ((presentation (epresent--get-presentation)))
+    (set-slot-value presentation 'org-buffer (current-buffer))
+    ;; To present narrowed region use temporary buffer
+    (when (and (or (> (point-min) (save-restriction (widen) (point-min)))
+                   (< (point-max) (save-restriction (widen) (point-max))))
+               (save-excursion (goto-char (point-min)) (org-at-heading-p)))
+      (let ((title (nth 4 (org-heading-components))))
+        (set-slot-value presentation 'org-restriction
+                        (list (point-min) (point-max)))
+        (require 'ox-org)
+        (set-slot-value presentation 'org-file
+                        (org-org-export-to-org nil 'subtree))
+        (find-file (slot-value presentation 'org-file))
+        (goto-char (point-min))
+        (insert (format "#+Title: %s\n\n" title))))
+    (set-slot-value presentation 'frame-level (epresent-get-frame-level)))
   (epresent-mode)
   (set-buffer-modified-p nil)
   (run-hooks 'epresent-start-presentation-hook))
