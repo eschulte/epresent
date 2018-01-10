@@ -133,6 +133,10 @@ Org falls back to the `org-pretty-entities` value."
 
 (defvar epresent-frame-level 1)
 
+(defcustom epresent-header-line nil
+  "Set the header-line format. Hides it when nil."
+  :group 'epresent)
+
 (defcustom epresent-mode-line '(:eval (int-to-string epresent-page-number))
   "Set the mode-line format.  Hides it when nil."
   :group 'epresent)
@@ -172,30 +176,41 @@ If nil then source blocks are initially hidden on slide change."
   (select-frame-set-input-focus epresent--frame)
   epresent--frame)
 
-;; functions
-(defun epresent-get-frame-level ()
-  "Get the heading level to show as different frames."
-  (interactive)
+;; TODO: How does Org not already have a mapping from file-option to value?
+(defun epresent--get-file-option (file-option)
   (save-excursion
     (save-restriction
       (widen)
       (goto-char (point-min))
-      (if (re-search-forward
-           "^#\\+EPRESENT_FRAME_LEVEL:[ \t]*\\(.*?\\)[ \t]*$" nil t)
-          (string-to-number (match-string 1))
-        1))))
+      (when (re-search-forward (concat "^#\\+"
+                                       (replace-regexp-in-string
+                                        "-"
+                                        "_"
+                                        (symbol-name file-option)
+                                        t
+                                        t)
+                                       ":[ \t]*\\(.*?\\)[ \t]*$")
+                               nil
+                               t)
+        (match-string 1)))))
+
+(defun epresent-get-frame-level ()
+  "Get the heading level to show as different frames."
+  (interactive)
+  (string-to-number (or (epresent--get-file-option 'epresent-frame-level)
+                        "1")))
+
+(defun epresent-get-header-line ()
+  "Get the presentation-specific header-line."
+  (interactive)
+  (car (read-from-string (or (epresent--get-file-option 'epresent-header-line)
+                             (prin1-to-string epresent-header-line)))))
 
 (defun epresent-get-mode-line ()
   "Get the presentation-specific mode-line."
   (interactive)
-  (save-excursion
-    (save-restriction
-      (widen)
-      (goto-char (point-min))
-      (if (re-search-forward
-           "^#\\+EPRESENT_MODE_LINE:[ \t]*\\(.*?\\)[ \t]*$" nil t)
-          (car (read-from-string (match-string 1)))
-        epresent-mode-line))))
+  (car (read-from-string (or (epresent--get-file-option 'epresent-mode-line)
+                             (prin1-to-string epresent-mode-line)))))
 
 (defun epresent-get-face-attributes ()
   "Get the presentation-specific face attributes."
@@ -556,7 +571,8 @@ If nil then source blocks are initially hidden on slide change."
   (unless (eq epresent-pretty-entities 'org)
     (setq epresent--org-pretty-entities org-pretty-entities
           org-pretty-entities epresent-pretty-entities))
-  (setq mode-line-format (epresent-get-mode-line))
+  (setq header-line-format (epresent-get-header-line)
+        mode-line-format (epresent-get-mode-line))
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
          (plist-put (copy-tree org-format-latex-options)
