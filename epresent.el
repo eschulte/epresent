@@ -28,12 +28,12 @@
 
 ;;; Commentary:
 
-;; This is a simple presentation mode for Emacs. It works best in
+;; This is a simple presentation mode for Emacs.  It works best in
 ;; Emacs >= 23, which has a nice font rendering engine.
 
-;; To use, invoke `epresent-run' in an `org-mode' buffer. This will
-;; make a full-screen frame. Use n/p to navigate, or q to quit. Read
-;; below for more key bindings. Each top-level headline becomes a
+;; To use, invoke `epresent-run' in an `org-mode' buffer.  This will
+;; make a full-screen frame.  Use n/p to navigate, or q to quit.  Read
+;; below for more key bindings.  Each top-level headline becomes a
 ;; frame in the presentation (configure `EPRESENT_FRAME_LEVEL' to
 ;; change this default). Org-mode markup is used to nicely display the
 ;; buffer's contents.
@@ -44,7 +44,9 @@
 (require 'ox-latex)
 (require 'cl-lib)
 
-(defgroup epresent () "This is a simple presentation mode for Emacs.")
+(defgroup epresent ()
+  "This is a simple presentation mode for Emacs."
+  :group 'applications)
 
 (defface epresent-title-face
   '((t :weight bold :height 360 :underline t :inherit variable-pitch))
@@ -80,7 +82,7 @@
   "Frame for EPresent.")
 
 (defvar epresent--org-buffer nil
-  "Original Org-mode buffer")
+  "Original Org-mode buffer.")
 
 (defvar epresent--org-restriction nil
   "Original restriction in Org-mode buffer.")
@@ -92,7 +94,7 @@
   "Set to non-nil when the `epresent--org-file' might be modified.")
 
 (defcustom epresent-text-size 500
-  "Text size when presenting"
+  "Text size when presenting."
   :type 'number
   :group 'epresent)
 
@@ -103,6 +105,7 @@
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
 (defvar epresent-pretty-entities nil)
+(defvar epresent-border-width 20)
 
 (defcustom epresent-format-latex-scale 4
   "A scaling factor for the size of the images generated from LaTeX."
@@ -127,7 +130,7 @@
 (make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
 
 (defcustom epresent-mode-line '(:eval (int-to-string epresent-page-number))
-  "Set the mode-line format. Hides it when nil"
+  "Set the mode-line format.  Hides it when nil."
   :group 'epresent)
 
 (defcustom epresent-src-blocks-visible t
@@ -149,17 +152,17 @@ If nil then source blocks are initially hidden on slide change."
 
 (defun epresent--get-frame ()
   (unless (frame-live-p epresent--frame)
-    (setq epresent--frame (make-frame '((minibuffer . nil)
-                                        (title . "EPresent")
-                                        (fullscreen . fullboth)
-                                        (menu-bar-lines . 0)
-                                        (tool-bar-lines . 0)
-                                        (vertical-scroll-bars . nil)
-                                        (left-fringe . 0)
-                                        (right-fringe . 0)
-                                        (internal-border-width . 20)
-                                        (cursor-type . nil)
-                                        ))))
+    (setq epresent--frame
+          (make-frame `((minibuffer . nil)
+                        (title . "EPresent")
+                        (fullscreen . fullboth)
+                        (menu-bar-lines . 0)
+                        (tool-bar-lines . 0)
+                        (vertical-scroll-bars . nil)
+                        (left-fringe . 0)
+                        (right-fringe . 0)
+                        (internal-border-width . ,epresent-border-width)
+                        (cursor-type . nil)))))
   (raise-frame epresent--frame)
   (select-frame-set-input-focus epresent--frame)
   epresent--frame)
@@ -198,7 +201,7 @@ If nil then source blocks are initially hidden on slide change."
       (org-up-heading-all (- level epresent-frame-level)))))
 
 (defun epresent-jump-to-page (num)
-  "Jump directly to a particular page in the presentation."
+  "Jump directly to page NUM in the presentation."
   (interactive "npage number: ")
   (epresent-top)
   (dotimes (_ (1- num)) (epresent-next-page)))
@@ -466,6 +469,18 @@ If nil then source blocks are initially hidden on slide change."
   (interactive "P")
   (epresent-toggle-hide-src-blocks t))
 
+(defun epresent-increase-inner-border ()
+  (interactive)
+  (modify-frame-parameters
+   epresent--frame
+   `((internal-border-width . ,(incf epresent-border-width 10)))))
+
+(defun epresent-decrease-inner-border ()
+  (interactive)
+  (modify-frame-parameters
+   epresent--frame
+   `((internal-border-width . ,(decf epresent-border-width 10)))))
+
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
@@ -500,6 +515,9 @@ If nil then source blocks are initially hidden on slide change."
     (define-key map "s" 'epresent-toggle-hide-src-blocks)
     (define-key map "S" 'epresent-toggle-hide-src-block)
     (define-key map "t" 'epresent-top)
+    (define-key map "a" 'epresent-increase-inner-border)
+    (define-key map ";" 'epresent-decrease-inner-border)
+
     map)
   "Local keymap for EPresent display mode.")
 
