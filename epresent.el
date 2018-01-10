@@ -48,33 +48,29 @@
   "This is a simple presentation mode for Emacs."
   :group 'applications)
 
-(defface epresent-title-face
-  '((t :weight bold :height 360 :underline t :inherit variable-pitch))
+(defface epresent-title-face '((t :inherit org-title))
   "Face used for the title of the document during the presentation."
   :group 'epresent)
 
-(defface epresent-heading-face
-  '((t :weight bold :height 270 :underline t :inherit variable-pitch))
+(defface epresent-heading-face '((t :inherit org-level-1))
   "Face used for the top-level headings in the outline during the presentation."
   :group 'epresent)
 
-(defface epresent-subheading-face
-  '((t :weight bold :height 240 :inherit variable-pitch))
+(defface epresent-subheading-face '((t :inherit org-level-2))
   "Face used for any non-top-level headings in the outline during the presentation."
   :group 'epresent)
 
-(defface epresent-author-face
-  '((t :height 1.6 :inherit variable-pitch))
+(defface epresent-author-face '((t :inherit org-info))
   "Face used for the author of the document during the presentation."
   :group 'epresent)
-
-(defface epresent-bullet-face
-  '((t :weight bold :height 1.4 :underline nil :inherit variable-pitch))
+(defface epresent-date-face '((t :inherit org-info))
+  "Face used for the author of the document during the presentation."
+  :group 'epresent)
+(defface epresent-bullet-face '((t))
   "Face used for bullets during the presentation."
   :group 'epresent)
 
-(defface epresent-hidden-face
-  '((t :invisible t))
+(defface epresent-hidden-face '((t :invisible t))
   "Face used for hidden elements during the presentation."
   :group 'epresent)
 
@@ -93,9 +89,9 @@
 (defvar epresent--possibly-modified nil
   "Set to non-nil when the `epresent--org-file' might be modified.")
 
-(defcustom epresent-text-size 500
-  "Text size when presenting."
-  :type 'number
+(defcustom epresent-face-attributes '((default :height 500))
+  "Base font size in 1/10 point."
+  :type '(alist :key-type symbol :value-type (plist))
   :group 'epresent)
 
 (defcustom epresent-pretty-entities 'org
@@ -199,6 +195,19 @@ If nil then source blocks are initially hidden on slide change."
            "^#\\+EPRESENT_MODE_LINE:[ \t]*\\(.*?\\)[ \t]*$" nil t)
           (car (read-from-string (match-string 1)))
         epresent-mode-line))))
+
+(defun epresent-get-face-attributes ()
+  "Get the presentation-specific face attributes."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (append
+       epresent-face-attributes
+       (when (re-search-forward
+              "^#\\+EPRESENT_FACE_ATTRIBUTES:[ \t]*\\(.*?\\)[ \t]*$" nil t)
+         (car (read-from-string (match-string 1))))))))
 
 (defun epresent-goto-top-level ()
   "Go to the current top level heading containing point."
@@ -552,7 +561,11 @@ If nil then source blocks are initially hidden on slide change."
          (plist-put (copy-tree org-format-latex-options)
 		    :scale epresent-format-latex-scale)))
     (org-preview-latex-fragment '(16)))
-  (set-face-attribute 'default epresent--frame :height epresent-text-size)
+  (mapc (lambda (pair)
+          (let ((face (car pair))
+                (attributes (cdr pair)))
+            (apply #'set-face-attribute face epresent--frame attributes)))
+        (epresent-get-face-attributes))
   ;; fontify the buffer
   (add-to-invisibility-spec '(epresent-hide))
   ;; remove flyspell overlays
