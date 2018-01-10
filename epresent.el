@@ -98,13 +98,22 @@
   :type 'number
   :group 'epresent)
 
+(defcustom epresent-pretty-entities 'org
+  "Use unicode versions of entities when possible.
+Org falls back to the `org-pretty-entities` value."
+  :type '(choice (const :tag "Inherit Org’s value"  org)
+                 (const :tag "Use Unicode Entities" t)
+                 (const :tag "Use plain entities"   nil))
+  :group 'epresent)
+
+(defvar epresent--org-pretty-entities nil)
+
 (defvar epresent-overlays nil)
 
 (defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
-(defvar epresent-pretty-entities nil)
 (defvar epresent-border-width 20)
 
 (defcustom epresent-format-latex-scale 4
@@ -127,7 +136,6 @@
 (defvar epresent-page-number 0)
 
 (defvar epresent-frame-level 1)
-(make-variable-frame-local 'epresent-frame-local) ;; Obsolete function?
 
 (defcustom epresent-mode-line '(:eval (int-to-string epresent-page-number))
   "Set the mode-line format.  Hides it when nil."
@@ -280,7 +288,8 @@ If nil then source blocks are initially hidden on slide change."
   (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
   (set-display-table-slot standard-display-table
                           'selective-display epresent-outline-ellipsis)
-  (setq org-pretty-entities epresent-pretty-entities)
+  (unless (eq epresent-pretty-entities 'org)
+    (setq org-pretty-entities epresent--org-pretty-entities))
   (remove-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
@@ -534,8 +543,9 @@ If nil then source blocks are initially hidden on slide change."
   (setq epresent-outline-ellipsis
         (display-table-slot standard-display-table 'selective-display))
   (set-display-table-slot standard-display-table 'selective-display [32])
-  (setq epresent-pretty-entities org-pretty-entities)
-  (setq org-hide-pretty-entities t)
+  (unless (eq epresent-pretty-entities 'org)
+    (setq epresent--org-pretty-entities org-pretty-entities
+          org-pretty-entities epresent-pretty-entities))
   (setq mode-line-format (epresent-get-mode-line))
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
