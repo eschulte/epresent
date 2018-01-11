@@ -274,7 +274,7 @@ If nil then source blocks are initially hidden on slide change."
          epresent-frame-level)
       (outline-next-heading)
     (org-get-next-sibling))
-  (incf epresent-page-number)
+  (setq epresent-page-number (1+ epresent-page-number))
   (epresent-current-page))
 
 (defun epresent-previous-page ()
@@ -288,7 +288,7 @@ If nil then source blocks are initially hidden on slide change."
       (outline-previous-heading)
     (org-get-last-sibling))
   (when (< 1 epresent-page-number)
-    (decf epresent-page-number))
+    (setq epresent-page-number (1- epresent-page-number)))
   (epresent-current-page))
 
 (defun epresent-clean-overlays (&optional start end)
