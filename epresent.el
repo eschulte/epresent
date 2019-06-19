@@ -627,6 +627,7 @@ If nil then source blocks are initially hidden on slide change."
       (find-file epresent--org-file)))
   (setq epresent-frame-level (epresent-get-frame-level))
   (epresent--get-frame)
+  (switch-to-buffer epresent--org-buffer)
   (epresent-mode)
   (set-buffer-modified-p nil)
   (run-hooks 'epresent-start-presentation-hook))
