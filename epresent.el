@@ -551,6 +551,45 @@ If nil then source blocks are initially hidden on slide change."
     (define-key map "a" 'epresent-increase-inner-border)
     (define-key map ";" 'epresent-decrease-inner-border)
 
+    ;; Allow the same bindings to work in evil-mode
+    ;; and add h and l for previous and next page respectively
+    (if (bound-and-true-p evil-mode)
+      (progn
+        (evil-define-key 'normal map "j" 'scroll-up)
+        (evil-define-key 'normal map [down] 'scroll-up)
+        (evil-define-key 'normal map "k" 'scroll-down)
+        (evil-define-key 'normal map [up] 'scroll-down)
+
+        (evil-define-key 'normal map " " 'epresent-next-page)
+        (evil-define-key 'normal map "n" 'epresent-next-page)
+        (evil-define-key 'normal map "l" 'epresent-next-page)
+        (evil-define-key 'normal map "f" 'epresent-next-page)
+        (evil-define-key 'normal map [right] 'epresent-next-page)
+        (evil-define-key 'normal map [next] 'epresent-next-page)
+
+        (evil-define-key 'normal map "p" 'epresent-previous-page)
+        (evil-define-key 'normal map "b" 'epresent-previous-page)
+        (evil-define-key 'normal map "h" 'epresent-previous-page)
+        (evil-define-key 'normal map [left] 'epresent-previous-page)
+        (evil-define-key 'normal map [prior] 'epresent-previous-page)
+        (evil-define-key 'normal map [backspace] 'epresent-previous-page)
+
+        (evil-define-key 'normal map "v" 'epresent-jump-to-page)
+
+        (evil-define-key 'normal map "c" 'epresent-next-src-block)
+        (evil-define-key 'normal map "C" 'epresent-next-src-block)
+        (evil-define-key 'normal map "e" 'org-edit-src-code)
+        (evil-define-key 'normal map [f5] 'epresent-edit-text) ; Another [f5] exits edit mode.
+        (evil-define-key 'normal map "x" 'epresent-execute-src-block)
+
+        (evil-define-key 'normal map "q" 'epresent-quit)
+        (evil-define-key 'normal map "s" 'epresent-toggle-hide-src-blocks)
+        (evil-define-key 'normal map "S" 'epresent-toggle-hide-src-block)
+        (evil-define-key 'normal map "1" 'epresent-top)
+        (evil-define-key 'normal map "t" 'epresent-top)
+        (evil-define-key 'normal map "a" 'epresent-increase-inner-border)
+        (evil-define-key 'normal map ";" 'epresent-decrease-inner-border)))
+
     map)
   "Local keymap for EPresent display mode.")
 
@@ -626,6 +665,8 @@ If nil then source blocks are initially hidden on slide change."
   (setq epresent-frame-level (epresent-get-frame-level))
   (epresent--get-frame)
   (epresent-mode)
+  ;; If evil-mode, force normal state for keybindings
+  (if (bound-and-true-p evil-mode) (evil-force-normal-state))
   (set-buffer-modified-p nil)
   (run-hooks 'epresent-start-presentation-hook))
 
