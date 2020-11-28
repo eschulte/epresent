@@ -106,7 +106,6 @@ Org falls back to the `org-pretty-entities` value."
 
 (defvar epresent-overlays nil)
 
-(defvar epresent-inline-image-overlays nil)
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
 (defvar epresent-outline-ellipsis nil)
@@ -306,9 +305,9 @@ If nil then source blocks are initially hidden on slide change."
   (interactive)
   (run-hooks 'epresent-stop-presentation-hook)
   (org-remove-latex-fragment-image-overlays)
+  (org-remove-inline-images)
   ;; restore the user's Org-mode variables
   (remove-hook 'org-src-mode-hook 'epresent-setup-src-edit)
-  (setq org-inline-image-overlays epresent-inline-image-overlays)
   (setq org-src-fontify-natively epresent-src-fontify-natively)
   (setq org-hide-emphasis-markers epresent-hide-emphasis-markers)
   (set-display-table-slot standard-display-table
@@ -559,7 +558,6 @@ If nil then source blocks are initially hidden on slide change."
   "Lalala."
   ;; make Org-mode be as pretty as possible
   (add-hook 'org-src-mode-hook 'epresent-setup-src-edit)
-  (setq epresent-inline-image-overlays org-inline-image-overlays)
   (setq epresent-src-fontify-natively org-src-fontify-natively)
   (setq org-src-fontify-natively t)
   (setq org-fontify-quote-and-verse-blocks t)
