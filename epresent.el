@@ -496,7 +496,7 @@ If nil then source blocks are initially hidden on slide change."
         (while (re-search-forward org-babel-src-block-regexp nil t)
           (goto-char (1- (match-end 5)))
           (toggle))))
-    (redraw-display)))
+    (redraw-frame)))
 
 (defun epresent-toggle-hide-src-block (&optional arg)
   (interactive "P")
