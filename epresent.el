@@ -411,7 +411,7 @@ If nil then source blocks are initially hidden on slide change."
     (when epresent-hide-tags
       (goto-char (point-min))
       (while (re-search-forward
-              (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]")
+              "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]"
               nil t)
         (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
