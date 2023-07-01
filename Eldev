@@ -1,0 +1,10 @@
+;; -*- mode: emacs-lisp; lexical-binding: t; -*-
+
+(require 'eldev)
+
+(setq
+  ;; run all linters by default
+  eldev-lint-default t
+  ;; except ‘package-lint’, because it’s also run within ‘elisp-lint’ (see
+  ;; ‘eldev-linter-elisp’)
+  eldev-lint-default-excluded '(package))

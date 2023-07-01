@@ -1,0 +1,22 @@
+### This configures basic cross-editor formatting.
+###
+### See https://editorconfig.org/ for more info, and to see if your editor
+### requires a plugin to take advantage of it.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{diff,patch}]
+trim_trailing_whitespace = false
+
+[*.{el,lisp}]
+## Lisps have a fairly consistent indentation style that doesn’t collapse well
+## to a single value, so we let the editor do what it wants here.
+indent_size = unset
