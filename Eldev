@@ -8,3 +8,14 @@
   ;; except ‘package-lint’, because it’s also run within ‘elisp-lint’ (see
   ;; ‘eldev-linter-elisp’)
   eldev-lint-default-excluded '(package))
+
+(eval-after-load 'byte-compile
+  '(setf
+     ;; When the minimum supported Emacs version gets to the mentioned versions
+     ;; below, we can remove that function from the list.
+     byte-compile-not-obsolete-funcs
+     '( hide-body ; Emacs 25.1
+        org-get-last-sibling ; Org 9.4
+        org-remove-latex-fragment-image-overlays ; Org 9.3
+        org-show-subtree ; Org 9.6
+        show-all))) ; Emacs 25.1

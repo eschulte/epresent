@@ -90,6 +90,7 @@
             nativeBuildInputs = [
               (pkgs.emacsWithPackages (epkgs: [
                 epkgs.buttercup
+                epkgs.evil
               ]))
               # Emacs-lisp build tool, https://doublep.github.io/eldev/
               pkgs.emacsPackages.eldev
@@ -100,7 +101,9 @@
                 echo
                 echo "(mapcar"
                 echo " 'eldev-use-local-dependency"
-                echo " '(\"${emacsPath pkgs.emacsPackages.buttercup}\"))"
+                echo " '(\"${emacsPath pkgs.emacsPackages.buttercup}\""
+                echo "   \"${emacsPath pkgs.emacsPackages.evil}\""
+                echo "   \"${emacsPath pkgs.emacsPackages.goto-chg}\"))"
               } >> Eldev
             '';
 
@@ -196,6 +199,8 @@
                 echo " 'eldev-use-local-dependency"
                 echo " '(\"${emacsPath pkgs.emacsPackages.dash}\""
                 echo "   \"${emacsPath pkgs.emacsPackages.elisp-lint}\""
+                echo "   \"${emacsPath pkgs.emacsPackages.evil}\""
+                echo "   \"${emacsPath pkgs.emacsPackages.goto-chg}\""
                 echo "   \"${emacsPath pkgs.emacsPackages.package-lint}\""
                 echo "   \"${emacsPath pkgs.emacsPackages.relint}\""
                 echo "   \"${emacsPath pkgs.emacsPackages.xr}\"))"
