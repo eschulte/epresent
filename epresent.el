@@ -664,6 +664,7 @@ If nil then source blocks are initially hidden on slide change."
       (find-file epresent--org-file)))
   (setq epresent-frame-level (epresent-get-frame-level))
   (epresent--get-frame)
+  (switch-to-buffer epresent--org-buffer)
   (epresent-mode)
   ;; If evil-mode, force normal state for keybindings
   (if (bound-and-true-p evil-mode) (evil-force-normal-state))
