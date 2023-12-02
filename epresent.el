@@ -1,12 +1,15 @@
-;;; epresent.el --- Simple presentation mode for Emacs Org-mode
+;;; epresent.el --- Simple presentation mode for Org-mode
 
 ;; Copyright (C) 2008 Tom Tromey <tromey@redhat.com>
 ;;               2010 Eric Schulte <schulte.eric@gmail.com>
 
-;; Authors: Tom Tromey <tromey@redhat.com>, Eric Schulte <schulte.eric@gmail.com>
+;; Authors: Tom Tromey <tromey@redhat.com>
+;;          Eric Schulte <schulte.eric@gmail.com>
 ;; Created: 12 Jun 2008
+;; Package-Requires: ((emacs "24.4") (evil "1.0"))
+;; URL: https://github.com/eschulte/epresent
 ;; Version: 0.1
-;; Keywords: gui
+;; Keywords: outlines, wp
 
 ;; This file is not (yet) part of GNU Emacs.
 ;; However, it is distributed under the same license.
@@ -57,7 +60,7 @@
   :group 'epresent)
 
 (defface epresent-subheading-face '((t :inherit org-level-2))
-  "Face used for any non-top-level headings in the outline during the presentation."
+  "Face used for any non-top-level headings during the presentation."
   :group 'epresent)
 
 (defface epresent-author-face '((t :inherit org-info))
@@ -134,10 +137,12 @@ Org falls back to the `org-pretty-entities` value."
 
 (defcustom epresent-header-line nil
   "Set the header-line format. Hides it when nil."
+  :type '(choice string (const :tag "Hide header line" nil))
   :group 'epresent)
 
 (defcustom epresent-mode-line '(:eval (int-to-string epresent-page-number))
   "Set the mode-line format.  Hides it when nil."
+  :type '(choice string (const :tag "Hide mode line" nil))
   :group 'epresent)
 
 (defcustom epresent-src-blocks-visible t
@@ -158,6 +163,7 @@ If nil then source blocks are initially hidden on slide change."
 (defvar epresent-src-block-toggle-state nil)
 
 (defun epresent--get-frame ()
+  "Create or return the frame displaying the presentation."
   (unless (frame-live-p epresent--frame)
     (setq epresent--frame
           (make-frame `((minibuffer . nil)
@@ -177,6 +183,7 @@ If nil then source blocks are initially hidden on slide change."
 
 ;; TODO: How does Org not already have a mapping from file-option to value?
 (defun epresent--get-file-option (file-option)
+  "Return the value of the provided Org FILE-OPTION for the current file.."
   (save-excursion
     (save-restriction
       (widen)
@@ -291,6 +298,7 @@ If nil then source blocks are initially hidden on slide change."
   (epresent-current-page))
 
 (defun epresent-clean-overlays (&optional start end)
+  "Remove all the overlays fully contained in the range START to END.."
   (interactive)
   (let (kept)
     (dolist (ov epresent-overlays)
@@ -377,7 +385,7 @@ If nil then source blocks are initially hidden on slide change."
           (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     ;; page title faces
     (goto-char (point-min))
-    (while (re-search-forward "^\\(*+\\)\\([ \t]+\\)\\(.*\\)$" nil t)
+    (while (re-search-forward "^\\(\\*+\\)\\([ \t]+\\)\\(.*\\)$" nil t)
       (push (make-overlay (match-beginning 1) (or (match-end 2)
                                                   (match-end 1)))
             epresent-overlays)
@@ -411,9 +419,10 @@ If nil then source blocks are initially hidden on slide change."
     (when epresent-hide-tags
       (goto-char (point-min))
       (while (re-search-forward
-              (org-re "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]")
+              "^\\*+.*?\\([ \t]+:[[:alnum:]_@#%:]+:\\)[ \r\n]"
               nil t)
-        (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+        (push (make-overlay (match-beginning 1) (match-end 1))
+              epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)))
     ;; hide properties
     (when epresent-hide-properties
@@ -427,39 +436,54 @@ If nil then source blocks are initially hidden on slide change."
           (overlay-put (car epresent-overlays) 'invisible 'epresent-hide))))
     (dolist (el '("title" "author" "date"))
       (goto-char (point-min))
-      (when (re-search-forward (format "^\\(#\\+%s:[ \t]*\\)[ \t]*\\(.*\\)$" el) nil t)
-        (push (make-overlay (match-beginning 1) (match-end 1)) epresent-overlays)
+      (when (re-search-forward (format "^\\(#\\+%s:[ \t]*\\)[ \t]*\\(.*\\)$" el)
+                               nil
+                               t)
+        (push (make-overlay (match-beginning 1) (match-end 1))
+              epresent-overlays)
         (overlay-put (car epresent-overlays) 'invisible 'epresent-hide)
-        (push (make-overlay (match-beginning 2) (match-end 2)) epresent-overlays)
+        (push (make-overlay (match-beginning 2) (match-end 2))
+              epresent-overlays)
         (overlay-put
-         (car epresent-overlays) 'face (intern (format "epresent-%s-face" el)))))
+         (car epresent-overlays)
+         'face (intern (format "epresent-%s-face" el)))))
     ;; inline images
     (org-display-inline-images)))
 
 (defun epresent-refresh ()
+  "Redraw the presentation."
   (interactive)
   (epresent-clean-overlays (point-min) (point-max))
   (epresent-fontify))
 
 (defun epresent-setup-src-edit ()
+  "Prepare the buffer for editing the Org source."
   (setq cursor-type 'box))
 
 (defun epresent-flash-cursor ()
+  "Briefly display the cursor."
   (setq cursor-type 'hollow)
   (sit-for 0.5)
   (setq cursor-type nil))
 
 (defun epresent-next-src-block (&optional arg)
+  "Jump to the next source block.
+With optional prefix argument ARG, jump forward ARG many source blocks."
   (interactive "P")
   (org-babel-next-src-block arg)
   (epresent-flash-cursor))
 
 (defun epresent-previous-src-block (&optional arg)
+  "Jump to the previous source block.
+With optional prefix argument ARG, jump backward ARG many source blocks."
   (interactive "P")
   (org-babel-previous-src-block arg)
   (epresent-flash-cursor))
 
 (defun epresent-toggle-hide-src-blocks (&optional arg)
+  "Toggle visibility of source blocks in the presentation.
+If ARG is non-nil, only toggle the current source block, otherwise toggle all of
+them."
   (interactive "P")
   (cl-labels
       ((boundaries ()
@@ -469,27 +493,28 @@ If nil then source blocks are initially hidden on slide change."
                            (goto-char head)
                            (looking-at org-babel-src-block-regexp)
                            (list (match-beginning 5) (match-end 5)))
-                       (error "no source block to hide at %d" (point)))))
+                       (error "No source block to hide at %d" (point)))))
        (toggle ()
-         (cl-destructuring-bind (beg end) (boundaries)
-           (let ((ovs (cl-remove-if-not
-                       (lambda (ov) (overlay-get ov 'epresent-hidden-src-block))
-                       (overlays-at beg))))
-             (if ovs
-                 (unless (and epresent-src-block-toggle-state
-                              (eq epresent-src-block-toggle-state :hide))
-                   (progn
-                     (mapc #'delete-overlay ovs)
-                     (setq epresent-overlays
-                           (cl-set-difference epresent-overlays ovs))))
-               (unless (and epresent-src-block-toggle-state
-                            (eq epresent-src-block-toggle-state :show))
-                 (progn
-                   (push (make-overlay beg end) epresent-overlays)
-                   (overlay-put (car epresent-overlays)
-                                'epresent-hidden-src-block t)
-                   (overlay-put (car epresent-overlays)
-                                'invisible 'epresent-hide))))))))
+               (cl-destructuring-bind (beg end) (boundaries)
+                 (let ((ovs (cl-remove-if-not
+                             (lambda (ov)
+                               (overlay-get ov 'epresent-hidden-src-block))
+                             (overlays-at beg))))
+                   (if ovs
+                       (unless (and epresent-src-block-toggle-state
+                                    (eq epresent-src-block-toggle-state :hide))
+                         (progn
+                           (mapc #'delete-overlay ovs)
+                           (setq epresent-overlays
+                                 (cl-set-difference epresent-overlays ovs))))
+                     (unless (and epresent-src-block-toggle-state
+                                  (eq epresent-src-block-toggle-state :show))
+                       (progn
+                         (push (make-overlay beg end) epresent-overlays)
+                         (overlay-put (car epresent-overlays)
+                                      'epresent-hidden-src-block t)
+                         (overlay-put (car epresent-overlays)
+                                      'invisible 'epresent-hide))))))))
     (if arg (toggle)               ; only toggle the current src block
       (save-excursion              ; toggle all source blocks
         (goto-char (point-min))
@@ -499,20 +524,27 @@ If nil then source blocks are initially hidden on slide change."
     (redraw-display)))
 
 (defun epresent-toggle-hide-src-block (&optional arg)
+  "Toggle visibility of the current source block.
+ARG is unused."
   (interactive "P")
   (epresent-toggle-hide-src-blocks t))
 
 (defun epresent-increase-inner-border ()
+  "Increase the padding around the presentation content.
+This is often useful when the presentation surface (projection screen, etc.)
+doesn’t contain the full dimensions. Adjusting this can dynamically resize the
+presentation to fit inside the available space."
   (interactive)
   (modify-frame-parameters
    epresent--frame
-   `((internal-border-width . ,(incf epresent-border-width 10)))))
+   `((internal-border-width . ,(cl-incf epresent-border-width 10)))))
 
 (defun epresent-decrease-inner-border ()
+  "Decrease the padding around the presentation content."
   (interactive)
   (modify-frame-parameters
    epresent--frame
-   `((internal-border-width . ,(decf epresent-border-width 10)))))
+   `((internal-border-width . ,(cl-decf epresent-border-width 10)))))
 
 (defvar epresent-mode-map
   (let ((map (make-keymap)))
@@ -538,7 +570,7 @@ If nil then source blocks are initially hidden on slide change."
     (define-key map "c" 'epresent-next-src-block)
     (define-key map "C" 'epresent-previous-src-block)
     (define-key map "e" 'org-edit-src-code)
-    (define-key map [f5] 'epresent-edit-text) ; Another [f5] exits edit mode.
+    (define-key map [f10] 'epresent-edit-text) ; Another [f10] exits edit mode.
     (define-key map "x" 'org-babel-execute-src-block)
     (define-key map "r" 'epresent-refresh)
     (define-key map "g" 'epresent-refresh)
@@ -550,46 +582,6 @@ If nil then source blocks are initially hidden on slide change."
     (define-key map "t" 'epresent-top)
     (define-key map "a" 'epresent-increase-inner-border)
     (define-key map ";" 'epresent-decrease-inner-border)
-
-    ;; Allow the same bindings to work in evil-mode
-    ;; and add h and l for previous and next page respectively
-    (if (bound-and-true-p evil-mode)
-      (progn
-        (evil-define-key 'normal map "j" 'scroll-up)
-        (evil-define-key 'normal map [down] 'scroll-up)
-        (evil-define-key 'normal map "k" 'scroll-down)
-        (evil-define-key 'normal map [up] 'scroll-down)
-
-        (evil-define-key 'normal map " " 'epresent-next-page)
-        (evil-define-key 'normal map "n" 'epresent-next-page)
-        (evil-define-key 'normal map "l" 'epresent-next-page)
-        (evil-define-key 'normal map "f" 'epresent-next-page)
-        (evil-define-key 'normal map [right] 'epresent-next-page)
-        (evil-define-key 'normal map [next] 'epresent-next-page)
-
-        (evil-define-key 'normal map "p" 'epresent-previous-page)
-        (evil-define-key 'normal map "b" 'epresent-previous-page)
-        (evil-define-key 'normal map "h" 'epresent-previous-page)
-        (evil-define-key 'normal map [left] 'epresent-previous-page)
-        (evil-define-key 'normal map [prior] 'epresent-previous-page)
-        (evil-define-key 'normal map [backspace] 'epresent-previous-page)
-
-        (evil-define-key 'normal map "v" 'epresent-jump-to-page)
-
-        (evil-define-key 'normal map "c" 'epresent-next-src-block)
-        (evil-define-key 'normal map "C" 'epresent-next-src-block)
-        (evil-define-key 'normal map "e" 'org-edit-src-code)
-        (evil-define-key 'normal map [f5] 'epresent-edit-text) ; Another [f5] exits edit mode.
-        (evil-define-key 'normal map "x" 'epresent-execute-src-block)
-
-        (evil-define-key 'normal map "q" 'epresent-quit)
-        (evil-define-key 'normal map "s" 'epresent-toggle-hide-src-blocks)
-        (evil-define-key 'normal map "S" 'epresent-toggle-hide-src-block)
-        (evil-define-key 'normal map "1" 'epresent-top)
-        (evil-define-key 'normal map "t" 'epresent-top)
-        (evil-define-key 'normal map "a" 'epresent-increase-inner-border)
-        (evil-define-key 'normal map ";" 'epresent-decrease-inner-border)))
-
     map)
   "Local keymap for EPresent display mode.")
 
@@ -613,8 +605,8 @@ If nil then source blocks are initially hidden on slide change."
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
          (plist-put (copy-tree org-format-latex-options)
-		    :scale epresent-format-latex-scale)))
-    (org-preview-latex-fragment '(16)))
+                    :scale epresent-format-latex-scale)))
+    (org-latex-preview '(16)))
   (mapc (lambda (pair)
           (let ((face (car pair))
                 (attributes (cdr pair)))
@@ -627,21 +619,21 @@ If nil then source blocks are initially hidden on slide change."
   (epresent-fontify))
 
 (defvar epresent-edit-map (let ((map (copy-keymap org-mode-map)))
-                            (define-key map [f5] 'epresent-refresh)
+                            (define-key map [f10] 'epresent-refresh)
                             map)
   "Local keymap for editing EPresent presentations.")
 
 (defun epresent-edit-text (&optional arg)
-  "Write in EPresent presentation."
+  "Write in EPresent presentation.
+ARG is unused."
   (interactive "p")
   (when epresent--org-file (setq epresent--possibly-modified t))
-  (lexical-let
-      ((prior-cursor-type (cdr (assoc 'cursor-type (frame-parameters)))))
+  (let ((prior-cursor-type (cdr (assoc 'cursor-type (frame-parameters)))))
     (set-frame-parameter nil 'cursor-type t)
     (use-local-map epresent-edit-map)
     (set-transient-map
      epresent-edit-map
-     (lambda () (not (equal [f5] (this-command-keys))))
+     (lambda () (not (equal [f10] (this-command-keys))))
      (lambda ()
        (use-local-map epresent-mode-map)
        (set-frame-parameter nil 'cursor-type prior-cursor-type)))))
@@ -665,12 +657,9 @@ If nil then source blocks are initially hidden on slide change."
   (setq epresent-frame-level (epresent-get-frame-level))
   (epresent--get-frame)
   (epresent-mode)
-  ;; If evil-mode, force normal state for keybindings
-  (if (bound-and-true-p evil-mode) (evil-force-normal-state))
   (set-buffer-modified-p nil)
   (run-hooks 'epresent-start-presentation-hook))
 
-(define-key org-mode-map [f5]  'epresent-run)
 (define-key org-mode-map [f12] 'epresent-run)
 
 (provide 'epresent)

@@ -1,0 +1,14 @@
+/.cache/git/config linguist-generated
+/.cache/git/hooks/pre-push linguist-generated
+/.cache/vale/Vocab/epresent/accept.txt linguist-generated
+/.dir-locals.el linguist-generated
+/.editorconfig linguist-generated
+/.envrc linguist-generated
+/.gitattributes linguist-generated
+/.github/renovate.json linguist-generated
+/.github/settings.yml linguist-generated
+/.gitignore linguist-generated
+/.vale.ini linguist-generated
+/.github/workflows/flakehub-publish.yml linguist-generated
+/garnix.yaml linguist-generated
+/.github/workflows/update-nix-lockfile.yml linguist-generated

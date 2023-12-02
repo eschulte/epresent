@@ -1,0 +1,21 @@
+;; -*- mode: emacs-lisp; lexical-binding: t; -*-
+
+(require 'eldev)
+
+(setq
+  ;; run all linters by default
+  eldev-lint-default t
+  ;; and disable the ‘elisp-lint’ validators that are already covered by
+  ;; ‘eldev-lint’ (see ‘eldev-linter-elisp’).
+  elisp-lint-ignored-validators '("checkdoc" "package-lint"))
+
+(eval-after-load 'byte-compile
+  '(setf
+     ;; When the minimum supported Emacs version gets to the mentioned versions
+     ;; below, we can remove that function from the list.
+     byte-compile-not-obsolete-funcs
+     '( hide-body ; Emacs 25.1
+        org-get-last-sibling ; Org 9.4
+        org-remove-latex-fragment-image-overlays ; Org 9.3
+        org-show-subtree ; Org 9.6
+        show-all))) ; Emacs 25.1
