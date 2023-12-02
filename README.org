@@ -1,12 +1,15 @@
 #+TITLE: epresent.el
 
+[[https://garnix.io][https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2Fepresent]]
 [[https://melpa.org/#/epresent][file:https://melpa.org/packages/epresent-badge.svg]]
+[[https://repology.org/project/emacs:epresent/versions][https://repology.org/badge/tiny-repos/emacs:epresent.svg]]
+[[https://repology.org/project/emacs:epresent/versions][https://repology.org/badge/latest-versions/emacs:epresent.svg]]
 
 /Simple presentation mode for Emacs Org-mode/
 
 * Install
 
-Just install =epresent= from melpa repositery.
+Just install =epresent= from MELPA repository.
 
 * Usage
 

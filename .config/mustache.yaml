@@ -1,0 +1,11 @@
+{
+  project:
+    {
+      description: "Simple presentation mode for Emacs Org-mode.",
+      name: "epresent",
+      repo: "sellout/epresent",
+      summary: "Simple presentation mode for Emacs Org-mode",
+      version: "0.1",
+    },
+  type: { name: "emacs-lisp" },
+}

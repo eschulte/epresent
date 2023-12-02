@@ -5,9 +5,9 @@
 (setq
   ;; run all linters by default
   eldev-lint-default t
-  ;; except ‘package-lint’, because it’s also run within ‘elisp-lint’ (see
-  ;; ‘eldev-linter-elisp’)
-  eldev-lint-default-excluded '(package))
+  ;; and disable the ‘elisp-lint’ validators that are already covered by
+  ;; ‘eldev-lint’ (see ‘eldev-linter-elisp’).
+  elisp-lint-ignored-validators '("checkdoc" "package-lint"))
 
 (eval-after-load 'byte-compile
   '(setf
