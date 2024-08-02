@@ -1,0 +1,6 @@
+direnv
+garnix
+[Nn]ix
+Pfeil
+ShellCheck
+Eldev
