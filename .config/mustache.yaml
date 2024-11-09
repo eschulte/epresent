@@ -3,7 +3,7 @@
     {
       description: "Simple presentation mode for Emacs Org-mode.",
       name: "epresent",
-      repo: "sellout/epresent",
+      repo: "eschulte/epresent",
       summary: "Simple presentation mode for Emacs Org-mode",
       version: "0.1",
     },

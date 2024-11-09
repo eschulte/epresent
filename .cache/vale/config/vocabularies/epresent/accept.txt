@@ -1,4 +1,5 @@
 direnv
+formatter
 garnix
 [Nn]ix
 Pfeil

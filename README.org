@@ -1,9 +1,12 @@
 #+TITLE: epresent.el
 
-[[https://garnix.io][https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2Fepresent]]
-[[https://melpa.org/#/epresent][file:https://melpa.org/packages/epresent-badge.svg]]
+#+ATTR_HTML: :alt built with garnix
+[[https://garnix.io/repo/sellout/epresent][https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2Femacs-epresent]]
+#+ATTR_HTML: :alt Packaging status
 [[https://repology.org/project/emacs:epresent/versions][https://repology.org/badge/tiny-repos/emacs:epresent.svg]]
+#+ATTR_HTML: :alt Latest packaged versions
 [[https://repology.org/project/emacs:epresent/versions][https://repology.org/badge/latest-versions/emacs:epresent.svg]]
+[[https://melpa.org/#/epresent][file:https://melpa.org/packages/epresent-badge.svg]]
 
 /Simple presentation mode for Emacs Org-mode/
 
@@ -21,3 +24,25 @@ Just install =epresent= from MELPA repository.
   =e= to edit them, =x= to make it run,
   and =s= / =S= to toggle their visibility
 - quit with =q=
+
+* development environment
+
+We recommend the following steps to make working in this repository as easy as possible.
+
+** ~direnv allow~
+
+This command ensures that any work you do within this repository happens within a consistent reproducible environment. That environment provides various debugging tools, etc. When you leave this directory, you will leave that environment behind, so it doesn’t impact anything else on your system.
+
+** ~git config --local include.path ../.cache/git/config~
+
+This will apply our repository-specific Git configuration to ~git~ commands run against this repository. It’s lightweight (you should definitely look at it before applying this command) – it does things like telling ~git blame~ to ignore formatting-only commits.
+
+* building
+
+** preferred
+
+Especially if you are unfamiliar with the Emacs ecosystem, there is a flake-based Nix build.
+
+** traditional
+
+This project offers an [[https://doublep.github.io/eldev/][Eldev]] build.
