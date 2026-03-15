@@ -400,7 +400,7 @@ If nil then source blocks are initially hidden on slide change."
           '(("[ \t]+" . "∘")
             ("" . "•")))
     ;; hide todos
-    (when epresent-hide-todos
+    (when (and epresent-hide-todos org-todo-line-regexp)
       (goto-char (point-min))
       (while (re-search-forward org-todo-line-regexp nil t)
         (when (match-string 2)
