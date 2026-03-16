@@ -74,19 +74,40 @@
   "Face used for hidden elements during the presentation."
   :group 'epresent)
 
-(defvar epresent--frame nil
-  "Frame for EPresent.")
+;; This defines buffer-local variables for keeping track of things relating to a
+;; currently running presentation. What complicates things is that EPresent
+;; juggles two buffers:
+;;
+;; - Source buffer :: The buffer where the epresent-run command is invoked.
+;;
+;; - Presented buffer :: The buffer that is actually being presented. This can
+;;       contain e.g. an exported narrowed region of the source buffer.
+;;
+;; Oh, and of course, if there is no reason to create a second buffer for
+;; presentation, then both the source buffer and the presented buffer are one
+;; and the same.
+;;
+;; What helps somewhat in keeping track of this is that, unless otherwise
+;; specified, pretty much all variables are buffer-local to the /presented/
+;; buffer. The only things that need to be buffer-local to the source buffer are
+;; the variables that aid in keeping track of which the presented buffer is,
+;; and what restriction the presented buffer was created from.
 
-(defvar epresent--org-buffer nil
-  "Original Org-mode buffer.")
+(defvar-local epresent--frame nil
+  "The frame where the presentation is run. Local to the presented buffer.")
 
-(defvar epresent--org-restriction nil
-  "Original restriction in Org-mode buffer.")
+(defvar-local epresent--org-restriction nil
+  "Original restriction in Org-mode buffer. Local to the source buffer.")
 
-(defvar epresent--org-file nil
-  "Temporary Org-mode file used when a narrowed region.")
+(defvar-local epresent--original-org-buffer nil
+  "The buffer containing the narrowed region exported to epresent--org-file.
+Local to the presented buffer.")
 
-(defvar epresent--possibly-modified nil
+(defvar-local epresent--org-file nil
+  "Temporary Org-mode file used when a narrowed region. Local to the presented
+buffer.")
+
+(defvar-local epresent--possibly-modified nil
   "Set to non-nil when the `epresent--org-file' might be modified.")
 
 (defcustom epresent-face-attributes '((default :height 500))
@@ -102,9 +123,9 @@ Org falls back to the `org-pretty-entities` value."
                  (const :tag "Use plain entities"   nil))
   :group 'epresent)
 
-(defvar epresent--org-pretty-entities nil)
+(defvar-local epresent--org-pretty-entities nil)
 
-(defvar epresent-overlays nil)
+(defvar-local epresent-overlays nil)
 
 (defvar epresent-src-fontify-natively nil)
 (defvar epresent-hide-emphasis-markers nil)
@@ -128,9 +149,9 @@ Org falls back to the `org-pretty-entities` value."
   :type 'boolean
   :group 'epresent)
 
-(defvar epresent-page-number 0)
+(defvar-local epresent-page-number 0)
 
-(defvar epresent-frame-level 1)
+(defvar-local epresent-frame-level 1)
 
 (defcustom epresent-header-line nil
   "Set the header-line format. Hides it when nil."
@@ -157,18 +178,21 @@ If nil then source blocks are initially hidden on slide change."
 
 (defvar epresent-src-block-toggle-state nil)
 
-(defun epresent--get-frame ()
+(defun epresent--get-frame (presentation-buffer)
   (unless (frame-live-p epresent--frame)
-    (setq epresent--frame
-          (make-frame `((minibuffer . nil)
-                        (title . "EPresent")
-                        (menu-bar-lines . 0)
-                        (tool-bar-lines . 0)
-                        (vertical-scroll-bars . nil)
-                        (left-fringe . 0)
-                        (right-fringe . 0)
-                        (internal-border-width . ,epresent-border-width)
-                        (cursor-type . nil))))
+    (let ((presentation-frame
+           (make-frame `((minibuffer . nil)
+                         (title . "EPresent")
+                         (menu-bar-lines . 0)
+                         (tool-bar-lines . 0)
+                         (vertical-scroll-bars . nil)
+                         (left-fringe . 0)
+                         (right-fringe . 0)
+                         (internal-border-width . ,epresent-border-width)
+                         (cursor-type . nil)))))
+      ;; Ensure the new frame displays the correct buffer
+      (switch-to-buffer presentation-buffer)
+      (setq epresent--frame presentation-frame))
     (select-frame-set-input-focus epresent--frame)
     (toggle-frame-fullscreen))
   (raise-frame epresent--frame)
@@ -318,15 +342,23 @@ If nil then source blocks are initially hidden on slide change."
   (when (string= "EPresent" (frame-parameter nil 'title))
     (delete-frame (selected-frame)))
   (when epresent--org-file
-    (kill-buffer (get-file-buffer epresent--org-file))
-    (when (file-exists-p epresent--org-file)
-      (when epresent--possibly-modified
-        (let ((temp (make-temp-file "epresent" nil ".org")))
-          (copy-file epresent--org-file temp 'overwrite)
-          (message "Presentation edits saved to %S" temp)))
-      (delete-file epresent--org-file)))
-  (when epresent--org-buffer
-    (set-buffer epresent--org-buffer))
+    ;; If we have presented an alternate org file, we expect there to be an
+    ;; original buffer from which this alternate file was created. We delete the
+    ;; alternate file and restore the original buffer. But first, save the
+    ;; values of relevant buffer-local variables.
+    (let ((org-file epresent--org-file)
+          (original-buffer epresent--original-org-buffer)
+          (possibly-modified epresent--possibly-modified))
+      (unless original-buffer
+        (error "Alternate org file was presented, but unknown original buffer."))
+      (kill-buffer (get-file-buffer org-file))
+      (set-buffer original-buffer)
+      (when (file-exists-p org-file)
+        (when possibly-modified
+          (let ((temp (make-temp-file "epresent" nil ".org")))
+            (copy-file org-file temp 'overwrite)
+            (message "Presentation edits saved to %S" temp)))
+        (delete-file org-file))))
   (org-mode)
   (if epresent--org-restriction
       (apply #'narrow-to-region epresent--org-restriction)
@@ -650,9 +682,6 @@ If nil then source blocks are initially hidden on slide change."
 (defun epresent-run ()
   "Present an Org-mode buffer."
   (interactive)
-  (unless (eq major-mode 'org-mode)
-    (error "EPresent can only be used from Org Mode"))
-  (setq epresent--org-buffer (current-buffer))
   ;; To present narrowed region use temporary buffer
   (when (and (or (> (point-min) (save-restriction (widen) (point-min)))
                  (< (point-max) (save-restriction (widen) (point-max))))
@@ -660,10 +689,19 @@ If nil then source blocks are initially hidden on slide change."
     (let ((title (nth 4 (org-heading-components))))
       (setq epresent--org-restriction (list (point-min) (point-max)))
       (require 'ox-org)
-      (setq epresent--org-file (org-org-export-to-org nil 'subtree))
-      (find-file epresent--org-file)))
+      (let ((org-file (org-org-export-to-org nil 'subtree))
+            (original-buffer (current-buffer)))
+        (find-file org-file)
+        (setq epresent--org-file org-file)
+        (setq epresent--original-org-buffer original-buffer))))
+
+  ;; Set up frame and buffer for EPresent
+  (epresent--get-frame (current-buffer))
   (setq epresent-frame-level (epresent-get-frame-level))
-  (epresent--get-frame)
+
+  ;; Run EPresent
+  (unless (eq major-mode 'org-mode)
+    (error "EPresent can only be used from Org Mode"))
   (epresent-mode)
   ;; If evil-mode, force normal state for keybindings
   (if (bound-and-true-p evil-mode) (evil-force-normal-state))
